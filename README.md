@@ -2,10 +2,11 @@
 ## _Another tool for pentesting Windows products and the OS itself_
 
 ### Features
-- [TODO] Build as a DLL to be executed inside another process
 - [TODO] The main binary is just an interpreter with special API, the scripts contain the pentest logic
 - [TOOD] Passing scripts via file or socket
 - [TODO] Interactive mode for live scripting
+- [TODO] Build as a DLL to be executed inside another process
+- [TODO] Executing pentest scenario stages in different threads
 
 ### Common pentest scenarios
 - Inject an image/shellcode into an existing/new process
