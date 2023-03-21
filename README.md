@@ -1,5 +1,6 @@
 # BreakingBat 🦇
-## _Another tool for pentesting Windows products and the OS itself_
+
+Another tool for pentesting Windows products and the OS itself.
 
 ### Features
 - [TODO] The main binary is just an interpreter with special API, the scripts contain the pentest logic
@@ -7,20 +8,33 @@
 - [TODO] Interactive mode for live scripting
 - [TODO] Build as a DLL to be executed inside another process
 - [TODO] Executing pentest scenario stages in different threads
+- [TODO] ARM64 Support
 
 ### Common pentest scenarios
 - Inject an image/shellcode into an existing/new process
+  - Remote thread injection
+  - Process hollowing
 - [TODO] Filesystem read/modification
+- [TODO] Disk (sectors) read/modification
 - [TODO] Registry read/modification
-- [TODO] Runtime anti-EDR tricks in own process (unhooking, AMSI bypass, ...)
+- [TODO] Runtime anti-EDR tricks in own process
+  - [TODO] Unhooking functions
+  - [TODO] Loading a copy of ntdll.dll
+  - [TODO] AMSI bypass
 - [TODO] Local Privilege Escalation
 - [TODO] Exploitation of TOCTOU bugs
 
 ### Some API options
-- [TODO] Usermode WinAPI from various generic libs (**kernel32.dll**, **user32.dll**, ...)
-- API from **ntdll.dll**: generic functions (available in **ntdll.lib**)
-- API from **ntdll.dll**: new functions, exported only in newer Windows versions (such as `NtMapViewOfSectionEx()`)
+- API from **ntdll.dll**:
+  - generic functions (available in **ntdll.lib**)
+  - new functions, exported only in newer Windows versions (such as `NtMapViewOfSectionEx()`)
+  - [TODO] non-exported functions, called by offset from symbols (via [DIA SDK](https://learn.microsoft.com/en-us/visualstudio/debugger/debug-interface-access/debug-interface-access-sdk))
 - [TODO] RPC API: functions from RPC client libs (**winspool.drv**, ...)
 - [TODO] RPC API: generated RPC stubs + direct call of `NdrClientCallX()`
 - [TODO] Execute shellcode from executable memory (outside of module images)
 - [TODO] Direct syscalls
+
+### Acknowledgments
+
+- https://github.com/processhacker/phnt
+- https://github.com/gentilkiwi/mimikatz
