@@ -38,3 +38,4 @@ Another tool for pentesting Windows products and the OS itself.
 
 - https://github.com/processhacker/phnt
 - https://github.com/gentilkiwi/mimikatz
+- https://github.com/hasherezade?tab=repositories
