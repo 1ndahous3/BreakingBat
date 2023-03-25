@@ -62,7 +62,7 @@ void print_usage(wchar_t *binary) {
 
 bool process_args_inject_create_remote_thread(wchar_t *binary, CSimpleOptW& args) {
 
-    wprintf(L"| Script: Inject via RtlCreateUserThread()\n");
+    wprintf(L"| Script: Inject via NtCreateThread()\n");
 
     sysapi::options_t opts;
     std::wstring process;
