@@ -22,10 +22,13 @@ typedef struct BASE_RELOCATION_ENTRY {
 namespace sysapi {
 
 struct options_t {
-    bool ntdll_ex = false;
+    bool ntdll_copy = false;
+    bool ntdll_alt_api = false;
 };
 
-using unique_handle = unique_resource<HANDLE, decltype(CloseHandle)>;
+void HandleClose(HANDLE Handle);
+
+using unique_handle = unique_resource<HANDLE, HandleClose>;
 
 struct process_t {
     unique_handle hProcess;
@@ -34,14 +37,13 @@ struct process_t {
 
 void init(const options_t& sysapi_opts);
 
+PPEB GetPeb();
+
 process_t ProcessCreate(const std::wstring& name, bool suspended = false);
-
 bool ProcessGetBasicInfo(HANDLE ProcessHandle, PROCESS_BASIC_INFORMATION& BasicInfo);
-
 uint32_t ProcessFind(const wchar_t* name);
 HANDLE ProcessOpen(uint32_t pid, ACCESS_MASK AccessMask = PROCESS_ALL_ACCESS);
 
-HANDLE ThreadCreateEx(HANDLE ProcessHandle, PVOID StartAddress);
 HANDLE ThreadCreate(HANDLE ProcessHandle, PVOID StartAddress);
 bool ThreadResume(HANDLE ThreadHandle);
 bool ThreadGetContext(HANDLE ThreadHandle, CONTEXT *ctx);
@@ -51,11 +53,9 @@ bool ThreadSetWow64Context(HANDLE ThreadHandle, WOW64_CONTEXT *ctx);
 bool ThreadCreateStack(HANDLE ProcessHandle, PINITIAL_TEB InitialTeb);
 
 HANDLE SectionCreate(size_t Size);
-HANDLE SectionFileCreate(HANDLE FileHandle);
+HANDLE SectionFileCreate(HANDLE FileHandle, SIZE_T Size = 0);
 PVOID SectionMapView(HANDLE SectionHandle, SIZE_T Size, ULONG Protect, HANDLE ProcessHandle = GetCurrentProcess(), PVOID BaseAddress = nullptr);
 bool SectionUnmapView(PVOID BaseAddress, HANDLE ProcessHandle = GetCurrentProcess());
-
-bool HandleClose(HANDLE Handle);
 
 PVOID VirtualMemoryAllocate(SIZE_T Size, ULONG Protect, HANDLE ProcessHandle = GetCurrentProcess(), PVOID BaseAddress = nullptr, ULONG AllocationType = MEM_RESERVE | MEM_COMMIT);
 bool VirtualMemoryProtect(PVOID BaseAddress, SIZE_T Size, ULONG& Protect, HANDLE ProcessHandle = GetCurrentProcess());
@@ -63,6 +63,9 @@ bool VirtualMemoryWrite(PVOID Data, SIZE_T Size, PVOID BaseAddress, HANDLE Proce
 size_t VirtualMemoryRead(PVOID Data, SIZE_T Size, PVOID BaseAddress, HANDLE ProcessHandle = GetCurrentProcess());
 
 HANDLE FileOpen(const wchar_t* path);
+HANDLE FileCreate(const wchar_t* path, size_t Size);
 size_t FileGetSize(HANDLE FileHandle);
+
+HMODULE LoadLibraryCopyW(const wchar_t* ModuleName);
 
 }

@@ -11,7 +11,8 @@
 enum {
     OPT_HELP,
     // optional options
-    OPT_NT_EX_FUNCS,
+    OPT_NTDLL_LOAD_COPY,
+    OPT_NTDLL_ALTERNATIVE_API,
     // scripts
     OPT_INJECT_CREATE_REMOTE_THREAD,
     OPT_INJECT_CREATE_HOLLOWED_PROCESS,
@@ -26,7 +27,8 @@ CSimpleOptW::SOption g_cli_opts[] = {
     { OPT_HELP, L"-?",     SO_NONE },
     { OPT_HELP, L"--help", SO_NONE },
     // optional options
-    { OPT_NT_EX_FUNCS,   L"--nt-ex-functions", SO_NONE },
+    { OPT_NTDLL_LOAD_COPY,        L"--ntdll-load-copy",       SO_NONE },
+    { OPT_NTDLL_ALTERNATIVE_API,  L"--ntdll-alternative-api", SO_NONE },
     // scripts
     { OPT_INJECT_CREATE_REMOTE_THREAD,    L"inject_create_remote_thread",    SO_NONE },
     { OPT_INJECT_CREATE_HOLLOWED_PROCESS, L"inject_create_hollowed_process", SO_NONE },
@@ -42,7 +44,8 @@ void print_usage(wchar_t *binary) {
     wprintf(L"Usage: %s <script> <script_options>\n", binary);
     wprintf(L"\n");
     wprintf(L"Global options:\n");
-    wprintf(L"  --nt-ex-functions (use Ex versions of NT functions, if available)\n");
+    wprintf(L"  --ntdll-load-copy (load and use copy of ntdll.dll)\n");
+    wprintf(L"  --ntdll-alternative-api (use alternative versions of some NT functions, if available)\n");
     wprintf(L"  --process-memory-init <method>\n");
     wprintf(L"    1 - allocate memory in remote process and write via virtual memory routines\n");
     wprintf(L"    2 - create new section, map view for remote process and write via virtual memory routines\n");
@@ -83,8 +86,12 @@ bool process_args_inject_create_remote_thread(wchar_t *binary, CSimpleOptW& args
             break;
         }
 
-        case OPT_NT_EX_FUNCS:
-            opts.ntdll_ex = true;
+        case OPT_NTDLL_LOAD_COPY:
+            opts.ntdll_copy = true;
+            break;
+
+        case OPT_NTDLL_ALTERNATIVE_API:
+            opts.ntdll_alt_api = true;
             break;
 
         case OPT_PROCESS_MEMORY_INIT: {
@@ -114,7 +121,8 @@ bool process_args_inject_create_remote_thread(wchar_t *binary, CSimpleOptW& args
     wprintf(L"| Options:\n");
     wprintf(L"|   Process: %s\n", process.c_str());
     wprintf(L"|   Remote process memory method: %lu\n", method);
-    wprintf(L"|   Use NT Extended API: %hs\n", opts.ntdll_ex ? "true" : "false");
+    wprintf(L"|   Load and use copy of ntdll.dll: %hs\n", opts.ntdll_copy ? "true" : "false");
+    wprintf(L"|   Use NT alternative API: %hs\n", opts.ntdll_alt_api ? "true" : "false");
     wprintf(L"\n");
 
     uint32_t pid = 0;
@@ -168,8 +176,12 @@ bool process_args_inject_create_hollowed_process(wchar_t *binary, CSimpleOptW& a
             injected_image = args.OptionArg();
             break;
 
-        case OPT_NT_EX_FUNCS:
-            opts.ntdll_ex = true;
+        case OPT_NTDLL_LOAD_COPY:
+            opts.ntdll_copy = true;
+            break;
+
+        case OPT_NTDLL_ALTERNATIVE_API:
+            opts.ntdll_alt_api = true;
             break;
 
         case OPT_PROCESS_MEMORY_INIT: {
@@ -200,7 +212,8 @@ bool process_args_inject_create_hollowed_process(wchar_t *binary, CSimpleOptW& a
     wprintf(L"|   Original image: %s\n", original_image.c_str());
     wprintf(L"|   Injected image: %s\n", injected_image.c_str());
     wprintf(L"|   Remote process memory method: %lu\n", method);
-    wprintf(L"|   Use NT Extended API: %hs\n", opts.ntdll_ex ? "true" : "false");
+    wprintf(L"|   Load and use copy of ntdll.dll: %hs\n", opts.ntdll_copy ? "true" : "false");
+    wprintf(L"|   Use NT alternative API: %hs\n", opts.ntdll_alt_api ? "true" : "false");
     wprintf(L"\n");
 
     sysapi::init(opts);

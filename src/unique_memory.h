@@ -2,13 +2,11 @@
 
 #include <memory.h>
 
-template<typename Type>
 using AllocatePtr = void *(*)(size_t);
 
-template<typename Type>
 using FreePtr = void (*)(void *);
 
-template<typename Type, AllocatePtr<Type> Allocate, FreePtr<Type> Free>
+template<typename Type, AllocatePtr Allocate, FreePtr Free>
 class unique_ptr {
 
     Type *m_ptr = nullptr;
@@ -86,7 +84,10 @@ using unique_c_buffer = unique_ptr<uint8_t, ::malloc, ::free>;
 
 // https://en.cppreference.com/w/cpp/experimental/unique_resource
 
-template<typename Type, typename Destroy>
+template<typename Type>
+using DestroyResource = void (*)(Type);
+
+template<typename Type, DestroyResource<Type> Destroy>
 class unique_resource {
 
     Type m_res = {};

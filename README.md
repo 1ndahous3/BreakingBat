@@ -17,9 +17,9 @@ Another tool for pentesting Windows products and the OS itself.
 - [TODO] Filesystem read/modification
 - [TODO] Disk (sectors) read/modification
 - [TODO] Registry read/modification
-- [TODO] Runtime anti-EDR tricks in own process
+- Runtime anti-EDR tricks
+  - Loading and using a copy of **ntdll.dll**
   - [TODO] Unhooking functions
-  - [TODO] Loading a copy of ntdll.dll
   - [TODO] AMSI bypass
 - [TODO] Local Privilege Escalation
 - [TODO] Exploitation of TOCTOU bugs
