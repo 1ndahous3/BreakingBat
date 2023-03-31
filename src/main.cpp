@@ -1,4 +1,4 @@
-#include <cstdio>
+﻿#include <cstdio>
 #include <string>
 #include <fcntl.h>
 #include <io.h>
@@ -53,10 +53,10 @@ void print_usage(wchar_t *binary) {
     wprintf(L"\n");
     wprintf(L"Scripts:\n");
 
-    wprintf(L"inject_create_remote_thread:\n");
+    wprintf(L"inject_create_remote_thread\n");
     wprintf(L"  --process (PID or process name)\n");
     wprintf(L"  --process-memory-init <method>\n");
-    wprintf(L"inject_create_hollowed_process:\n");
+    wprintf(L"inject_create_hollowed_process\n");
     wprintf(L"  --original-image (filepath)\n");
     wprintf(L"  --injected-image (filepath)\n");
     wprintf(L"  --process-memory-init <method>\n");
