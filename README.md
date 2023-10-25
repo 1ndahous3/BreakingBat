@@ -14,6 +14,7 @@ Another tool for pentesting Windows products and the OS itself.
 - Inject an image/shellcode into an existing/new process
   - Remote thread injection
   - Process hollowing
+  - Process doppelganging
 - [TODO] Filesystem read/modification
 - [TODO] Disk (sectors) read/modification
 - [TODO] Registry read/modification

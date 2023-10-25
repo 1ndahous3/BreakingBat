@@ -55,6 +55,21 @@ bool process_create_memory(RemoteProcessMemoryContext& ctx) {
     return false;
 }
 
+bool process_read_memory(const RemoteProcessMemoryContext& ctx, size_t offset, PVOID Data, SIZE_T Size) {
+
+    bool res;
+
+    if (ctx.LocalBaseAddress == nullptr) {
+        res = sysapi::VirtualMemoryRead(Data, Size, PTR_ADD(ctx.RemoteBaseAddress, offset), ctx.ProcessHandle);
+    }
+    else {
+        memcpy(Data, PTR_ADD(ctx.LocalBaseAddress, offset), Size);
+        res = true;
+    }
+
+    return res;
+}
+
 bool process_write_memory(const RemoteProcessMemoryContext& ctx, size_t offset, PVOID Data, SIZE_T Size) {
 
     bool res;
@@ -70,19 +85,34 @@ bool process_write_memory(const RemoteProcessMemoryContext& ctx, size_t offset, 
     return res;
 }
 
-bool process_read_memory(const RemoteProcessMemoryContext& ctx, size_t offset, PVOID Data, SIZE_T Size) {
+bool process_memory_create_write(RemoteProcessMemoryContext& ctx, PVOID Data, SIZE_T Size) {
 
-    bool res;
-
-    if (ctx.LocalBaseAddress == nullptr) {
-        res = sysapi::VirtualMemoryRead(Data, Size, PTR_ADD(ctx.RemoteBaseAddress, offset), ctx.ProcessHandle);
-    }
-    else {
-        memcpy(Data, PTR_ADD(ctx.LocalBaseAddress, offset), Size);
-        res = true;
+    bool res = process_create_memory(ctx);
+    if (!res) {
+        return false;
     }
 
-    return res;
+    res = process_write_memory(ctx, 0, Data, Size);
+    if (!res) {
+        return false;
+    }
+
+    return true;
+}
+
+bool process_memory_create_write_fixup_addr(RemoteProcessMemoryContext& ctx, PVOID Data, SIZE_T Size, RemoteProcessMemoryContext& ctx_fixup, size_t offset_fixup) {
+
+    bool res = process_memory_create_write(ctx, Data, Size);
+    if (!res) {
+        return false;
+    }
+
+    res = process_write_memory(ctx_fixup, offset_fixup, &ctx.RemoteBaseAddress, sizeof(ctx.RemoteBaseAddress));
+    if (!res) {
+        return false;
+    }
+
+    return true;
 }
 
 bool process_pe_image_relocate(const RemoteProcessMemoryContext& ctx, PVOID ImageBuffer) {
@@ -196,5 +226,38 @@ bool process_pe_image_relocate(const RemoteProcessMemoryContext& ctx, PVOID Imag
     return true;
 }
 
+//
 
+bool process_write_params(HANDLE ProcessHandle, PRTL_USER_PROCESS_PARAMETERS Params, PVOID PebBaseAddress, RemoteProcessMemoryMethod method) {
+
+    RemoteProcessMemoryContext ctx_params;
+    ctx_params.method = method;
+    ctx_params.ProcessHandle = ProcessHandle;
+    ctx_params.Size = Params->Length;
+
+    RemoteProcessMemoryContext ctx_peb;
+    ctx_peb.ProcessHandle = ProcessHandle;
+    ctx_peb.RemoteBaseAddress = PebBaseAddress;
+    // TODO: add another methods
+
+    bool res = process_memory_create_write_fixup_addr(ctx_params, Params, Params->Length, ctx_peb, offsetof(PEB, ProcessParameters));
+    if (!res) {
+        return false;
+    }
+
+    if (Params->Environment) {
+
+        RemoteProcessMemoryContext ctx_env;
+        ctx_env.method = method;
+        ctx_env.ProcessHandle = ProcessHandle;
+        ctx_env.Size = (ULONG)Params->EnvironmentSize;
+
+        res = process_memory_create_write_fixup_addr(ctx_env, Params->Environment, Params->EnvironmentSize, ctx_params, offsetof(RTL_USER_PROCESS_PARAMETERS, Environment));
+        if (!res) {
+            return false;
+        }
+    }
+
+    return true;
+}
 }

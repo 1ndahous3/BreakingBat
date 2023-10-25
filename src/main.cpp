@@ -15,7 +15,8 @@ enum {
     OPT_NTDLL_ALTERNATIVE_API,
     // scripts
     OPT_INJECT_CREATE_REMOTE_THREAD,
-    OPT_INJECT_CREATE_HOLLOWED_PROCESS,
+    OPT_INJECT_CREATE_HOLLOW_PROCESS,
+    OPT_INJECT_CREATE_DOPPEL_PROCESS,
     // script options
     OPT_PROCESS,
     OPT_ORIGINAL_IMAGE,
@@ -30,8 +31,9 @@ CSimpleOptW::SOption g_cli_opts[] = {
     { OPT_NTDLL_LOAD_COPY,        L"--ntdll-load-copy",       SO_NONE },
     { OPT_NTDLL_ALTERNATIVE_API,  L"--ntdll-alternative-api", SO_NONE },
     // scripts
-    { OPT_INJECT_CREATE_REMOTE_THREAD,    L"inject_create_remote_thread",    SO_NONE },
-    { OPT_INJECT_CREATE_HOLLOWED_PROCESS, L"inject_create_hollowed_process", SO_NONE },
+    { OPT_INJECT_CREATE_REMOTE_THREAD,  L"inject_create_remote_thread",  SO_NONE },
+    { OPT_INJECT_CREATE_HOLLOW_PROCESS, L"inject_create_hollow_process", SO_NONE },
+    { OPT_INJECT_CREATE_DOPPEL_PROCESS, L"inject_create_doppel_process", SO_NONE },
     // script options
     { OPT_PROCESS,             L"--process",             SO_REQ_SEP},
     { OPT_ORIGINAL_IMAGE,      L"--original-image",      SO_REQ_SEP},
@@ -56,7 +58,11 @@ void print_usage(wchar_t *binary) {
     wprintf(L"inject_create_remote_thread\n");
     wprintf(L"  --process (PID or process name)\n");
     wprintf(L"  --process-memory-init <method>\n");
-    wprintf(L"inject_create_hollowed_process\n");
+    wprintf(L"inject_create_hollow_process\n");
+    wprintf(L"  --original-image (filepath)\n");
+    wprintf(L"  --injected-image (filepath)\n");
+    wprintf(L"  --process-memory-init <method>\n");
+    wprintf(L"inject_create_doppel_process\n");
     wprintf(L"  --original-image (filepath)\n");
     wprintf(L"  --injected-image (filepath)\n");
     wprintf(L"  --process-memory-init <method>\n");
@@ -150,7 +156,7 @@ bool process_args_inject_create_remote_thread(wchar_t *binary, CSimpleOptW& args
 }
 
 
-bool process_args_inject_create_hollowed_process(wchar_t *binary, CSimpleOptW& args) {
+bool process_args_inject_create_hollow_process(wchar_t *binary, CSimpleOptW& args) {
 
     wprintf(L"| Script: Inject via process hollowing\n");
 
@@ -217,8 +223,80 @@ bool process_args_inject_create_hollowed_process(wchar_t *binary, CSimpleOptW& a
     wprintf(L"\n");
 
     sysapi::init(opts);
-    return scripts::inject_create_process_hollowed(original_image, injected_image, (scripts::RemoteProcessMemoryMethod)(method - 1));
+    return scripts::inject_create_process_hollow(original_image, injected_image, (scripts::RemoteProcessMemoryMethod)(method - 1));
 }
+
+
+bool process_args_inject_create_doppel_process(wchar_t *binary, CSimpleOptW& args) {
+
+    wprintf(L"| Script: Inject via process doppelganging\n");
+
+    sysapi::options_t opts;
+    std::wstring original_image, injected_image;
+
+    uint8_t method = 0;
+
+    while (args.Next()) {
+
+        if (args.LastError() != SO_SUCCESS) {
+            print_usage(binary);
+            return false;
+        }
+
+        switch (args.OptionId()) {
+
+        case OPT_ORIGINAL_IMAGE:
+            original_image = args.OptionArg();
+            break;
+
+        case OPT_INJECTED_IMAGE:
+            injected_image = args.OptionArg();
+            break;
+
+        case OPT_NTDLL_LOAD_COPY:
+            opts.ntdll_copy = true;
+            break;
+
+        case OPT_NTDLL_ALTERNATIVE_API:
+            opts.ntdll_alt_api = true;
+            break;
+
+        case OPT_PROCESS_MEMORY_INIT: {
+
+            wchar_t* end;
+            uint32_t m = wcstoul(args.OptionArg(), &end, 10);
+            if (errno == ERANGE || m == 0 || m > 3) {
+                print_usage(binary);
+                return false;
+            }
+
+            method = (uint8_t)m;
+            break;
+        }
+
+        default:
+            print_usage(binary);
+            return false;
+        }
+    }
+
+    if (original_image.empty() || injected_image.empty() || method == 0) {
+        print_usage(binary);
+        return false;
+    }
+
+    wprintf(L"| Options:\n");
+    wprintf(L"|   Original image: %s\n", original_image.c_str());
+    wprintf(L"|   Injected image: %s\n", injected_image.c_str());
+    wprintf(L"|   Remote process memory method: %lu\n", method);
+    wprintf(L"|   Load and use copy of ntdll.dll: %hs\n", opts.ntdll_copy ? "true" : "false");
+    wprintf(L"|   Use NT alternative API: %hs\n", opts.ntdll_alt_api ? "true" : "false");
+    wprintf(L"\n");
+
+    sysapi::init(opts);
+    return scripts::inject_create_process_doppel(original_image, injected_image, (scripts::RemoteProcessMemoryMethod)(method - 1));
+}
+
 
 int wmain(int argc, wchar_t *argv[]) {
 
@@ -260,8 +338,15 @@ int wmain(int argc, wchar_t *argv[]) {
 
         return 0;
 
-    case OPT_INJECT_CREATE_HOLLOWED_PROCESS:
-        if (!process_args_inject_create_hollowed_process(argv[0], args)) {
+    case OPT_INJECT_CREATE_HOLLOW_PROCESS:
+        if (!process_args_inject_create_hollow_process(argv[0], args)) {
+            return -1;
+        }
+
+        return 0;
+
+    case OPT_INJECT_CREATE_DOPPEL_PROCESS:
+        if (!process_args_inject_create_doppel_process(argv[0], args)) {
             return -1;
         }
 

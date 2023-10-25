@@ -9,15 +9,15 @@
 
 namespace scripts {
 
-bool inject_create_process_hollowed(const std::wstring& original_image,
-                                    const std::wstring& injected_image,
-                                    RemoteProcessMemoryMethod method) {
+bool inject_create_process_hollow(const std::wstring& original_image,
+                                  const std::wstring& injected_image,
+                                  RemoteProcessMemoryMethod method) {
 
     wprintf(L"\nPreparing a new process\n");
 
     wprintf(L"  [*] creating process...\n");
 
-    auto process = sysapi::ProcessCreate(original_image, true);
+    auto process = sysapi::ProcessCreateUser(original_image, true);
     if (process.hProcess == NULL) {
         return false;
     }
@@ -59,7 +59,7 @@ bool inject_create_process_hollowed(const std::wstring& original_image,
 
     wprintf(L"  [*] mapping image file...\n");
 
-    auto ImageFileSection = sysapi::SectionFileCreate(ImageHandle.get());
+    auto ImageFileSection = sysapi::SectionFileCreate(ImageHandle.get(), SECTION_MAP_READ, PAGE_READONLY);
     if (ImageFileSection == NULL) {
         return false;
     }

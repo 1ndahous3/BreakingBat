@@ -51,13 +51,24 @@ public:
     }
 
     [[nodiscard]]
-    bool allocate(size_t size = 1) noexcept {
+    bool allocate() noexcept {
 
         if (m_ptr) {
             Free(m_ptr);
         }
 
-        m_ptr = (Type *)Allocate(size * sizeof(Type));
+        m_ptr = (Type *)Allocate(sizeof(Type));
+        return m_ptr != nullptr;
+    }
+
+    [[nodiscard]]
+    bool allocate(size_t size) noexcept {
+
+        if (m_ptr) {
+            Free(m_ptr);
+        }
+
+        m_ptr = (Type *)Allocate(size);
         return m_ptr != nullptr;
     }
 

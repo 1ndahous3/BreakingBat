@@ -1,6 +1,7 @@
 #include "phnt_windows.h"
 #include "phnt.h"
 #include <tlhelp32.h>
+#include <userenv.h>
 
 #include <cstdio>
 #include <cstdint>
@@ -30,13 +31,21 @@ struct ntdll_api_t {
     decltype(::NtQueryInformationThread)* NtQueryInformationThread = nullptr;
     decltype(::NtSetInformationThread)* NtSetInformationThread = nullptr;
     decltype(::NtCreateUserProcess)* NtCreateUserProcess = nullptr;
+    decltype(::NtCreateProcessEx)* NtCreateProcessEx = nullptr;
     decltype(::NtCreateThreadEx)* NtCreateThreadEx = nullptr;
     decltype(::NtCreateFile)* NtCreateFile = nullptr;
+    decltype(::NtWriteFile)* NtWriteFile = nullptr;
+    decltype(::NtCreateTransaction)* NtCreateTransaction = nullptr;
+    decltype(::NtRollbackTransaction)* NtRollbackTransaction = nullptr;
     decltype(::NtQueryInformationFile)* NtQueryInformationFile = nullptr;
     decltype(::RtlCreateProcessParametersEx)* RtlCreateProcessParametersEx = nullptr;
     decltype(::RtlDestroyProcessParameters)* RtlDestroyProcessParameters = nullptr;
     decltype(::RtlInitializeContext)* RtlInitializeContext = nullptr;
+    decltype(::RtlCreateEnvironmentEx)* RtlCreateEnvironmentEx = nullptr;
+    decltype(::RtlDestroyEnvironment)* RtlDestroyEnvironment = nullptr;
+    decltype(::RtlSetCurrentTransaction)* RtlSetCurrentTransaction = nullptr;
     // alternative API
+    decltype(::NtCreateProcess)* NtCreateProcess = nullptr;
     decltype(::NtCreateThread)* NtCreateThread = nullptr;
     decltype(::NtCreateSectionEx)* NtCreateSectionEx = nullptr;
     decltype(::NtMapViewOfSectionEx)* NtMapViewOfSectionEx = nullptr;
@@ -78,14 +87,22 @@ void init(const options_t &sysapi_opts) {
     NTDLL_RESOLVE(NtQueryInformationThread);
     NTDLL_RESOLVE(NtSetInformationThread);
     NTDLL_RESOLVE(NtCreateUserProcess);
+    NTDLL_RESOLVE(NtCreateProcessEx);
     NTDLL_RESOLVE(NtCreateThreadEx);
     NTDLL_RESOLVE(NtCreateFile);
+    NTDLL_RESOLVE(NtWriteFile);
+    NTDLL_RESOLVE(NtCreateTransaction);
+    NTDLL_RESOLVE(NtRollbackTransaction);
     NTDLL_RESOLVE(NtQueryInformationFile);
     NTDLL_RESOLVE(RtlCreateProcessParametersEx);
     NTDLL_RESOLVE(RtlDestroyProcessParameters);
     NTDLL_RESOLVE(RtlInitializeContext);
+    NTDLL_RESOLVE(RtlCreateEnvironmentEx);
+    NTDLL_RESOLVE(RtlDestroyEnvironment);
+    NTDLL_RESOLVE(RtlSetCurrentTransaction);
 
     if (sysapi_opts.ntdll_alt_api) {
+        NTDLL_RESOLVE(NtCreateProcess);
         NTDLL_RESOLVE(NtCreateThread);
         NTDLL_RESOLVE(NtCreateSectionEx);
         NTDLL_RESOLVE(NtMapViewOfSectionEx);
@@ -123,15 +140,23 @@ void init(const options_t &sysapi_opts) {
         NTDLL_RESOLVE(NtQueryInformationThread);
         NTDLL_RESOLVE(NtSetInformationThread);
         NTDLL_RESOLVE(NtCreateUserProcess);
+        NTDLL_RESOLVE(NtCreateProcessEx);
         NTDLL_RESOLVE(NtCreateThreadEx);
         NTDLL_RESOLVE(NtCreateFile);
+        NTDLL_RESOLVE(NtWriteFile);
+        NTDLL_RESOLVE(NtCreateTransaction);
+        NTDLL_RESOLVE(NtRollbackTransaction);
         NTDLL_RESOLVE(NtQueryInformationFile);
         // these functions crash inside guard_dispatch_icall_nop() if called from copy of ntdll.dll
         //NTDLL_RESOLVE(RtlCreateProcessParametersEx);
         //NTDLL_RESOLVE(RtlDestroyProcessParameters);
         //NTDLL_RESOLVE(RtlInitializeContext);
+        NTDLL_RESOLVE(RtlCreateEnvironmentEx);
+        NTDLL_RESOLVE(RtlDestroyEnvironment);
+        NTDLL_RESOLVE(RtlSetCurrentTransaction);
 
         if (sysapi_opts.ntdll_alt_api) {
+            NTDLL_RESOLVE(NtCreateProcess);
             NTDLL_RESOLVE(NtCreateThread);
             NTDLL_RESOLVE(NtCreateSectionEx);
             NTDLL_RESOLVE(NtMapViewOfSectionEx);
@@ -149,12 +174,44 @@ PPEB GetPeb()
 {
 #if defined(_WIN64)
     return (PPEB)__readgsqword(0x60);
-#elif define(_WIN32)
+#elif defined(_WIN32)
     return (PPEB)__readfsdword(0x30);
 #endif
 }
 
-process_t ProcessCreate(const std::wstring& name, bool suspended) {
+PRTL_USER_PROCESS_PARAMETERS ProcessParametersCreate(const std::wstring& name) {
+
+    auto nt_name = L"\\??\\" + name;
+
+    UNICODE_STRING NtImagePath;
+    RtlInitUnicodeString(&NtImagePath, nt_name.c_str());
+
+    wchar_t dirPath[MAX_PATH];
+    GetCurrentDirectoryW(MAX_PATH, dirPath);
+
+    UNICODE_STRING uCurrentDir;
+    RtlInitUnicodeString(&uCurrentDir, dirPath);
+
+    UNICODE_STRING uDllDir = sysapi::GetPeb()->ProcessParameters->DllPath;
+
+    LPVOID ProcessEnvironment = sysapi::GetPeb()->ProcessParameters->Environment;
+
+    PRTL_USER_PROCESS_PARAMETERS ProcessParameters = NULL;
+    NTSTATUS status = ntdll.RtlCreateProcessParametersEx(&ProcessParameters, &NtImagePath, &uDllDir, &uCurrentDir, &NtImagePath, ProcessEnvironment, NULL, NULL, NULL, NULL, 0);
+
+    if (!NT_SUCCESS(status)) {
+        wprintf(L"  [-] unable to create process parameters, status = 0x%x\n", status);
+        return NULL;
+    }
+
+    return ProcessParameters;
+}
+
+void ProcessParametersDestroy(PRTL_USER_PROCESS_PARAMETERS ProcessParameters) {
+    ntdll.RtlDestroyProcessParameters(ProcessParameters);
+}
+
+process_t ProcessCreateUser(const std::wstring& name, bool suspended) {
 
     auto nt_name = L"\\??\\" + name;
 
@@ -191,6 +248,29 @@ process_t ProcessCreate(const std::wstring& name, bool suspended) {
     }
 
     return process;
+}
+
+HANDLE ProcessCreate(HANDLE SectionHandle) {
+
+    OBJECT_ATTRIBUTES ObjectAttributes;
+    InitializeObjectAttributes(&ObjectAttributes, NULL, 0, NULL, NULL);
+
+    HANDLE ProcessHandle;
+    NTSTATUS status;
+
+    if (ntdll.NtCreateProcess) {
+        status = ntdll.NtCreateProcess(&ProcessHandle, PROCESS_ALL_ACCESS, &ObjectAttributes, NtCurrentProcess(), TRUE, SectionHandle, NULL, NULL);
+    }
+    else {
+        status = ntdll.NtCreateProcessEx(&ProcessHandle, PROCESS_ALL_ACCESS, &ObjectAttributes, NtCurrentProcess(), PROCESS_CREATE_FLAGS_INHERIT_HANDLES, SectionHandle, NULL, NULL, 0);
+    }
+
+    if (!NT_SUCCESS(status)) {
+        wprintf(L"  [-] unable to create process, status = 0x%x\n", status);
+        return NULL;
+    }
+
+    return ProcessHandle;
 }
 
 bool ProcessGetBasicInfo(HANDLE ProcessHandle, PROCESS_BASIC_INFORMATION& BasicInfo) {
@@ -469,7 +549,7 @@ HANDLE SectionCreate(size_t Size) {
     return SectionHandle;
 }
 
-HANDLE SectionFileCreate(HANDLE FileHandle, SIZE_T Size) {
+HANDLE SectionFileCreate(HANDLE FileHandle, ACCESS_MASK DesiredAccess, ULONG Protection, bool AsImage, SIZE_T Size) {
 
     HANDLE SectionHandle;
 
@@ -478,10 +558,10 @@ HANDLE SectionFileCreate(HANDLE FileHandle, SIZE_T Size) {
     LARGE_INTEGER MaximumSize{ .QuadPart = (LONGLONG)Size };
 
     if (ntdll.NtCreateSectionEx) {
-        status = ntdll.NtCreateSectionEx(&SectionHandle, Size ? SECTION_ALL_ACCESS : SECTION_MAP_READ, NULL, &MaximumSize, Size ? PAGE_READWRITE : PAGE_READONLY, SEC_COMMIT, FileHandle, NULL, 0);
+        status = ntdll.NtCreateSectionEx(&SectionHandle, DesiredAccess, NULL, &MaximumSize, Protection, AsImage ? SEC_IMAGE : SEC_COMMIT, FileHandle, NULL, 0);
     }
     else {
-        status = ntdll.NtCreateSection(&SectionHandle, Size ? SECTION_ALL_ACCESS : SECTION_MAP_READ, NULL, &MaximumSize, Size ? PAGE_READWRITE : PAGE_READONLY, SEC_COMMIT, FileHandle);
+        status = ntdll.NtCreateSection(&SectionHandle, DesiredAccess, NULL, &MaximumSize, Protection, AsImage ? SEC_IMAGE : SEC_COMMIT, FileHandle);
     }
 
     if (!NT_SUCCESS(status)) {
@@ -609,6 +689,52 @@ size_t VirtualMemoryRead(PVOID Data, SIZE_T Size, PVOID BaseAddress, HANDLE Proc
     return NumberOfBytesRead;
 }
 
+HANDLE TransactionCreate(const wchar_t* path) {
+
+    auto nt_path = L"\\??\\" + std::wstring(path);
+
+    UNICODE_STRING uPath;
+    RtlInitUnicodeString(&uPath, nt_path.c_str());
+
+    OBJECT_ATTRIBUTES ObjectAttributes;
+    InitializeObjectAttributes(&ObjectAttributes, &uPath, OBJ_CASE_INSENSITIVE, NULL, NULL);
+
+    HANDLE hTransaction;
+
+    NTSTATUS status = ntdll.NtCreateTransaction(&hTransaction, TRANSACTION_ALL_ACCESS, &ObjectAttributes, NULL, NULL, 0, 0, 0, NULL, NULL);
+
+    if (!NT_SUCCESS(status)) {
+        wprintf(L"  [-] unable to create transaction (%s), status = 0x%x\n", path, status);
+        return NULL;
+    }
+
+    return hTransaction;
+}
+
+bool TransactionRollback(HANDLE hTransaction) {
+
+    NTSTATUS status = ntdll.NtRollbackTransaction(hTransaction, TRUE);
+
+    if (!NT_SUCCESS(status)) {
+        wprintf(L"  [-] unable to rollback transaction (HANDLE = 0x%p), status = 0x%x\n", hTransaction, status);
+        return false;
+    }
+
+    return true;
+}
+
+bool TransactionSet(HANDLE hTransaction) {
+
+    auto res = ntdll.RtlSetCurrentTransaction(hTransaction);
+
+    if (!res) {
+        wprintf(L"  [-] unable to set current transaction (HANDLE = 0x%p)\n", hTransaction);
+        return false;
+    }
+
+    return true;
+}
+
 HANDLE FileOpen(const wchar_t* path) {
 
     auto nt_path = L"\\??\\" + std::wstring(path);
@@ -662,6 +788,20 @@ HANDLE FileCreate(const wchar_t* path, size_t Size) {
     return hFile;
 }
 
+bool FileWrite(HANDLE FileHandle, PVOID Data, SIZE_T Size) {
+
+    IO_STATUS_BLOCK IoStatus = {};
+
+    NTSTATUS status = ntdll.NtWriteFile(FileHandle, NULL, NULL, NULL, &IoStatus, Data, (ULONG)Size, NULL, NULL);
+
+    if (!NT_SUCCESS(status)) {
+        wprintf(L"  [-] unable to write file (HANDLE = 0x%p), status = 0x%x\n", FileHandle, status);
+        return false;
+    }
+
+    return IoStatus.Information == Size;
+}
+
 size_t FileGetSize(HANDLE FileHandle) {
 
     IO_STATUS_BLOCK IoStatus = {};
@@ -674,7 +814,7 @@ size_t FileGetSize(HANDLE FileHandle) {
         return 0;
     }
 
-    return FileInformation.EndOfFile.QuadPart;
+    return (size_t)FileInformation.EndOfFile.QuadPart;
 }
 
 HMODULE LoadLibraryCopyW(const wchar_t* ModulePath) {
@@ -700,7 +840,7 @@ HMODULE LoadLibraryCopyW(const wchar_t* ModulePath) {
             return NULL;
         }
 
-        sysapi::unique_handle ModuleSectionHandle = SectionFileCreate(ModuleHandle.get());
+        sysapi::unique_handle ModuleSectionHandle = SectionFileCreate(ModuleHandle.get(), SECTION_MAP_READ, PAGE_READONLY);
         if (ModuleSectionHandle == NULL) {
             return NULL;
         }
@@ -715,7 +855,7 @@ HMODULE LoadLibraryCopyW(const wchar_t* ModulePath) {
             return NULL;
         }
 
-        sysapi::unique_handle ModuleCopySectionHandle = SectionFileCreate(ModuleCopyHandle.get(), ModuleSize);
+        sysapi::unique_handle ModuleCopySectionHandle = SectionFileCreate(ModuleCopyHandle.get(), SECTION_ALL_ACCESS, PAGE_READWRITE, false, ModuleSize);
         if (ModuleCopySectionHandle == NULL) {
             return NULL;
         }

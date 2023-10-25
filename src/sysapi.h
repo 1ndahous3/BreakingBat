@@ -39,7 +39,11 @@ void init(const options_t& sysapi_opts);
 
 PPEB GetPeb();
 
-process_t ProcessCreate(const std::wstring& name, bool suspended = false);
+PRTL_USER_PROCESS_PARAMETERS ProcessParametersCreate(const std::wstring& name);
+void ProcessParametersDestroy(PRTL_USER_PROCESS_PARAMETERS ProcessParameters);
+
+process_t ProcessCreateUser(const std::wstring& name, bool suspended = false);
+HANDLE ProcessCreate(HANDLE SectionHandle);
 bool ProcessGetBasicInfo(HANDLE ProcessHandle, PROCESS_BASIC_INFORMATION& BasicInfo);
 uint32_t ProcessFind(const wchar_t* name);
 HANDLE ProcessOpen(uint32_t pid, ACCESS_MASK AccessMask = PROCESS_ALL_ACCESS);
@@ -53,7 +57,7 @@ bool ThreadSetWow64Context(HANDLE ThreadHandle, WOW64_CONTEXT *ctx);
 bool ThreadCreateStack(HANDLE ProcessHandle, PINITIAL_TEB InitialTeb);
 
 HANDLE SectionCreate(size_t Size);
-HANDLE SectionFileCreate(HANDLE FileHandle, SIZE_T Size = 0);
+HANDLE SectionFileCreate(HANDLE FileHandle, ACCESS_MASK DesiredAccess, ULONG Protection, bool AsImage = false, SIZE_T Size = 0);
 PVOID SectionMapView(HANDLE SectionHandle, SIZE_T Size, ULONG Protect, HANDLE ProcessHandle = GetCurrentProcess(), PVOID BaseAddress = nullptr);
 bool SectionUnmapView(PVOID BaseAddress, HANDLE ProcessHandle = GetCurrentProcess());
 
@@ -62,8 +66,13 @@ bool VirtualMemoryProtect(PVOID BaseAddress, SIZE_T Size, ULONG& Protect, HANDLE
 bool VirtualMemoryWrite(PVOID Data, SIZE_T Size, PVOID BaseAddress, HANDLE ProcessHandle = GetCurrentProcess());
 size_t VirtualMemoryRead(PVOID Data, SIZE_T Size, PVOID BaseAddress, HANDLE ProcessHandle = GetCurrentProcess());
 
+HANDLE TransactionCreate(const wchar_t* path);
+bool TransactionRollback(HANDLE hTransaction);
+bool TransactionSet(HANDLE hTransaction);
+
 HANDLE FileOpen(const wchar_t* path);
 HANDLE FileCreate(const wchar_t* path, size_t Size);
+bool FileWrite(HANDLE FileHandle, PVOID Data, SIZE_T Size);
 size_t FileGetSize(HANDLE FileHandle);
 
 HMODULE LoadLibraryCopyW(const wchar_t* ModuleName);

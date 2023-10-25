@@ -15,7 +15,8 @@ target_sources(breaking_bat PRIVATE
     src/main.cpp
     src/scripts/scripts.cpp
     src/scripts/inject_create_remote_thread.cpp
-    src/scripts/inject_create_process_hollowed.cpp
+    src/scripts/inject_create_process_hollow.cpp
+    src/scripts/inject_create_process_doppel.cpp
 )
 
 foreach(CompilerFlag CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE
