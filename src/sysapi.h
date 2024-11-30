@@ -48,6 +48,8 @@ bool ProcessGetBasicInfo(HANDLE ProcessHandle, PROCESS_BASIC_INFORMATION& BasicI
 uint32_t ProcessFind(const wchar_t* name);
 HANDLE ProcessOpen(uint32_t pid, ACCESS_MASK AccessMask = PROCESS_ALL_ACCESS);
 
+HANDLE ThreadOpenNext(HANDLE ProcessHandle, HANDLE ThreadHandle = NULL, ACCESS_MASK AccessMask = THREAD_ALL_ACCESS);
+HANDLE ThreadOpen(uint32_t pid, uint32_t tid, ACCESS_MASK AccessMask = THREAD_ALL_ACCESS);
 HANDLE ThreadCreate(HANDLE ProcessHandle, PVOID StartAddress);
 bool ThreadResume(HANDLE ThreadHandle);
 bool ThreadGetContext(HANDLE ThreadHandle, CONTEXT *ctx);
@@ -69,6 +71,8 @@ size_t VirtualMemoryRead(PVOID Data, SIZE_T Size, PVOID BaseAddress, HANDLE Proc
 HANDLE TransactionCreate(const wchar_t* path);
 bool TransactionRollback(HANDLE hTransaction);
 bool TransactionSet(HANDLE hTransaction);
+
+bool ApcQueueUserApc(HANDLE ThreadHandle, PPS_APC_ROUTINE ApcRoutine);
 
 HANDLE FileOpen(const wchar_t* path);
 HANDLE FileCreate(const wchar_t* path, size_t Size);

@@ -33,11 +33,15 @@ struct ntdll_api_t {
     decltype(::NtCreateUserProcess)* NtCreateUserProcess = nullptr;
     decltype(::NtCreateProcessEx)* NtCreateProcessEx = nullptr;
     decltype(::NtCreateThreadEx)* NtCreateThreadEx = nullptr;
+    decltype(::NtOpenThread)* NtOpenThread = nullptr;
+    decltype(::NtGetNextThread)* NtGetNextThread = nullptr;
     decltype(::NtCreateFile)* NtCreateFile = nullptr;
     decltype(::NtWriteFile)* NtWriteFile = nullptr;
     decltype(::NtCreateTransaction)* NtCreateTransaction = nullptr;
     decltype(::NtRollbackTransaction)* NtRollbackTransaction = nullptr;
     decltype(::NtQueryInformationFile)* NtQueryInformationFile = nullptr;
+    decltype(::NtQueueApcThread)* NtQueueApcThread = nullptr;
+    decltype(::NtQueueApcThreadEx)* NtQueueApcThreadEx = nullptr;
     decltype(::RtlCreateProcessParametersEx)* RtlCreateProcessParametersEx = nullptr;
     decltype(::RtlDestroyProcessParameters)* RtlDestroyProcessParameters = nullptr;
     decltype(::RtlInitializeContext)* RtlInitializeContext = nullptr;
@@ -89,11 +93,15 @@ void init(const options_t &sysapi_opts) {
     NTDLL_RESOLVE(NtCreateUserProcess);
     NTDLL_RESOLVE(NtCreateProcessEx);
     NTDLL_RESOLVE(NtCreateThreadEx);
+    NTDLL_RESOLVE(NtOpenThread);
+    NTDLL_RESOLVE(NtGetNextThread);
     NTDLL_RESOLVE(NtCreateFile);
     NTDLL_RESOLVE(NtWriteFile);
     NTDLL_RESOLVE(NtCreateTransaction);
     NTDLL_RESOLVE(NtRollbackTransaction);
     NTDLL_RESOLVE(NtQueryInformationFile);
+    NTDLL_RESOLVE(NtQueueApcThread);
+    NTDLL_RESOLVE(NtQueueApcThreadEx);
     NTDLL_RESOLVE(RtlCreateProcessParametersEx);
     NTDLL_RESOLVE(RtlDestroyProcessParameters);
     NTDLL_RESOLVE(RtlInitializeContext);
@@ -142,11 +150,15 @@ void init(const options_t &sysapi_opts) {
         NTDLL_RESOLVE(NtCreateUserProcess);
         NTDLL_RESOLVE(NtCreateProcessEx);
         NTDLL_RESOLVE(NtCreateThreadEx);
+        NTDLL_RESOLVE(NtOpenThread);
+        NTDLL_RESOLVE(NtGetNextThread);
         NTDLL_RESOLVE(NtCreateFile);
         NTDLL_RESOLVE(NtWriteFile);
         NTDLL_RESOLVE(NtCreateTransaction);
         NTDLL_RESOLVE(NtRollbackTransaction);
         NTDLL_RESOLVE(NtQueryInformationFile);
+        NTDLL_RESOLVE(NtQueueApcThread);
+        NTDLL_RESOLVE(NtQueueApcThreadEx);
         // these functions crash inside guard_dispatch_icall_nop() if called from copy of ntdll.dll
         //NTDLL_RESOLVE(RtlCreateProcessParametersEx);
         //NTDLL_RESOLVE(RtlDestroyProcessParameters);
@@ -342,6 +354,50 @@ HANDLE ProcessOpen(uint32_t pid, ACCESS_MASK AccessMask) {
 
     //wprintf(L"  [+] process (PID = %d) opened, HANDLE = 0x%p\n", pid, ProcessHandle);
     return ProcessHandle;
+}
+
+HANDLE ThreadOpenNext(HANDLE ProcessHandle, HANDLE ThreadHandle, ACCESS_MASK AccessMask) {
+
+    HANDLE NewThreadHandle;
+
+    NTSTATUS status = ntdll.NtGetNextThread(
+        ProcessHandle,
+        ThreadHandle,
+        AccessMask,
+        0,
+        0,
+        &NewThreadHandle
+    );
+
+    if (!NT_SUCCESS(status)) {
+        if (status != STATUS_NO_MORE_ENTRIES) {
+            wprintf(L"  [-] unable to open thread (HANDLE = 0x%p), status = 0x%x\n", ProcessHandle, status);
+        }
+
+        return NULL;
+    }
+
+    //wprintf(L"  [+] thread opened (HANDLE = 0x%p), HANDLE = 0x%p\n", ProcessHandle, NewThreadHandle);
+    return NewThreadHandle;
+}
+
+HANDLE ThreadOpen(uint32_t pid, uint32_t tid, ACCESS_MASK AccessMask) {
+
+    HANDLE ThreadHandle;
+
+    OBJECT_ATTRIBUTES ObjectAttributes;
+    InitializeObjectAttributes(&ObjectAttributes, NULL, 0, NULL, NULL);
+
+    CLIENT_ID Cid{ .UniqueProcess = ULongToHandle(pid), .UniqueThread = ULongToHandle(tid) };
+    NTSTATUS status = ntdll.NtOpenThread(&ThreadHandle, AccessMask, &ObjectAttributes, &Cid);
+
+    if (!NT_SUCCESS(status)) {
+        wprintf(L"  [-] unable to open thread (PID = %d, TID = %d), status = 0x%x\n", pid, tid, status);
+        return NULL;
+    }
+
+    //wprintf(L"  [+] thread (PID = %d, TID = %d) opened, HANDLE = 0x%p\n", pid, tid, ThreadHandle);
+    return ThreadHandle;
 }
 
 HANDLE ThreadCreate(HANDLE ProcessHandle, PVOID StartAddress) {
@@ -729,6 +785,17 @@ bool TransactionSet(HANDLE hTransaction) {
 
     if (!res) {
         wprintf(L"  [-] unable to set current transaction (HANDLE = 0x%p)\n", hTransaction);
+        return false;
+    }
+
+    return true;
+}
+
+bool ApcQueueUserApc(HANDLE ThreadHandle, PPS_APC_ROUTINE ApcRoutine) {
+
+    NTSTATUS status = ntdll.NtQueueApcThread(ThreadHandle, ApcRoutine, NULL, NULL, NULL);
+    if (!NT_SUCCESS(status)) {
+        wprintf(L"  [-] unable to queue user APC (HANDLE = 0x%p), status = 0x%x\n", ThreadHandle, status);
         return false;
     }
 

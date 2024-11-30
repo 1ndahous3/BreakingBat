@@ -12,7 +12,8 @@ Another tool for pentesting Windows products and the OS itself.
 
 ### Common pentest scenarios
 - Inject an image/shellcode into an existing/new process
-  - Remote thread injection
+  - Remote process new thread injection
+  - Remote process APC thread injection
   - Process hollowing
   - Process doppelganging
 - [TODO] Filesystem read/modification

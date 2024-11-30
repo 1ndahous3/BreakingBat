@@ -7,6 +7,9 @@
 
 namespace scripts {
 
+extern char* default_shellcode_data;
+extern size_t default_shellcode_size;
+
 enum class RemoteProcessMemoryMethod {
     AllocateInAddr,
     CreateSectionMap,
@@ -47,4 +50,5 @@ bool inject_create_process_hollow(const std::wstring& original_image,
 bool inject_create_process_doppel(const std::wstring& original_image,
                                   const std::wstring& injected_image,
                                   RemoteProcessMemoryMethod method);
+bool inject_queue_apc(uint32_t pid, uint32_t tid, RemoteProcessMemoryMethod method);
 }
