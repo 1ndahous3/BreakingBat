@@ -20,6 +20,7 @@ enum {
     OPT_INJECT_QUEUE_APC,
     // script options
     OPT_PROCESS,
+    OPT_THREAD,
     OPT_ORIGINAL_IMAGE,
     OPT_INJECTED_IMAGE,
     OPT_PROCESS_MEMORY_INIT
@@ -38,6 +39,7 @@ CSimpleOptW::SOption g_cli_opts[] = {
     { OPT_INJECT_QUEUE_APC,             L"inject_queue_apc",             SO_NONE },
     // script options
     { OPT_PROCESS,             L"--process",             SO_REQ_SEP},
+    { OPT_THREAD,              L"--thread",              SO_REQ_SEP},
     { OPT_ORIGINAL_IMAGE,      L"--original-image",      SO_REQ_SEP},
     { OPT_INJECTED_IMAGE,      L"--injected-image",      SO_REQ_SEP},
     { OPT_PROCESS_MEMORY_INIT, L"--process-memory-init", SO_REQ_SEP},
@@ -70,6 +72,7 @@ void print_usage(wchar_t *binary) {
     wprintf(L"  --process-memory-init <method>\n");
     wprintf(L"inject_queue_apc\n");
     wprintf(L"  --process (PID or process name)\n");
+    wprintf(L"  --thread (TID), optional\n");
     wprintf(L"  --process-memory-init <method>\n");
     wprintf(L"\n");
 }
@@ -308,6 +311,7 @@ bool process_args_inject_queue_apc(wchar_t *binary, CSimpleOptW& args) {
 
     sysapi::options_t opts;
     std::wstring process;
+    std::wstring thread;
 
     uint8_t method = 0;
 
@@ -322,6 +326,11 @@ bool process_args_inject_queue_apc(wchar_t *binary, CSimpleOptW& args) {
 
         case OPT_PROCESS: {
             process = args.OptionArg();
+            break;
+        }
+
+        case OPT_THREAD: {
+            thread = args.OptionArg();
             break;
         }
 
@@ -359,6 +368,7 @@ bool process_args_inject_queue_apc(wchar_t *binary, CSimpleOptW& args) {
 
     wprintf(L"| Options:\n");
     wprintf(L"|   Process: %s\n", process.c_str());
+    wprintf(L"|   Threads: %s\n", thread.empty() ? L"all" : thread.c_str() );
     wprintf(L"|   Remote process memory method: %lu\n", method);
     wprintf(L"|   Load and use copy of ntdll.dll: %hs\n", opts.ntdll_copy ? "true" : "false");
     wprintf(L"|   Use NT alternative API: %hs\n", opts.ntdll_alt_api ? "true" : "false");
@@ -384,8 +394,20 @@ bool process_args_inject_queue_apc(wchar_t *binary, CSimpleOptW& args) {
         }
     }
 
+    uint32_t tid = 0;
+
+    if (!thread.empty()) {
+
+        wchar_t* end;
+        tid = wcstoul(thread.c_str(), &end, 10);
+        if (errno == ERANGE || tid == 0) {
+            wprintf(L"  [-] invalid TID\n");
+            return false;
+        }
+    }
+
     sysapi::init(opts);
-    return scripts::inject_queue_apc(pid, 0, (scripts::RemoteProcessMemoryMethod)(method - 1));
+    return scripts::inject_queue_apc(pid, tid, (scripts::RemoteProcessMemoryMethod)(method - 1));
 }
 
 
