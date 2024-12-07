@@ -14,6 +14,7 @@ target_sources(breaking_bat PRIVATE
     src/sysapi.cpp
     src/main.cpp
     src/scripts/scripts.cpp
+    src/scripts/inject_hijack_remote_thread.cpp
     src/scripts/inject_create_remote_thread.cpp
     src/scripts/inject_create_process_hollow.cpp
     src/scripts/inject_create_process_doppel.cpp

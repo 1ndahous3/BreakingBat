@@ -25,6 +25,7 @@ struct ntdll_api_t {
     decltype(::NtClose)* NtClose = nullptr;
     decltype(::NtOpenProcess)* NtOpenProcess = nullptr;
     decltype(::NtQueryInformationProcess)* NtQueryInformationProcess = nullptr;
+    decltype(::NtSuspendThread)* NtSuspendThread = nullptr;
     decltype(::NtResumeThread)* NtResumeThread = nullptr;
     decltype(::NtGetContextThread)* NtGetContextThread = nullptr;
     decltype(::NtSetContextThread)* NtSetContextThread = nullptr;
@@ -85,6 +86,7 @@ void init(const options_t &sysapi_opts) {
     NTDLL_RESOLVE(NtClose);
     NTDLL_RESOLVE(NtOpenProcess);
     NTDLL_RESOLVE(NtQueryInformationProcess);
+    NTDLL_RESOLVE(NtSuspendThread);
     NTDLL_RESOLVE(NtResumeThread);
     NTDLL_RESOLVE(NtGetContextThread);
     NTDLL_RESOLVE(NtSetContextThread);
@@ -142,6 +144,7 @@ void init(const options_t &sysapi_opts) {
         NTDLL_RESOLVE(NtClose);
         NTDLL_RESOLVE(NtOpenProcess);
         NTDLL_RESOLVE(NtQueryInformationProcess);
+        NTDLL_RESOLVE(NtSuspendThread);
         NTDLL_RESOLVE(NtResumeThread);
         NTDLL_RESOLVE(NtGetContextThread);
         NTDLL_RESOLVE(NtSetContextThread);
@@ -297,6 +300,20 @@ bool ProcessGetBasicInfo(HANDLE ProcessHandle, PROCESS_BASIC_INFORMATION& BasicI
     return true;
 }
 
+bool ProcessGetWow64Info(HANDLE ProcessHandle, bool& is_64) {
+
+    ULONG_PTR Wow64Info;
+    NTSTATUS status = ntdll.NtQueryInformationProcess(ProcessHandle, ProcessWow64Information, &Wow64Info, sizeof(ULONG_PTR), NULL);
+
+    if (!NT_SUCCESS(status)) {
+        wprintf(L"  [-] unable to get WOW64 process information (HANDLE = 0x%p), status = 0x%x\n", ProcessHandle, status);
+        return false;
+    }
+
+    is_64 = Wow64Info == NULL;
+    return true;
+}
+
 uint32_t ProcessFind(const wchar_t *name) {
 
     uint32_t pid = 0;
@@ -438,6 +455,19 @@ HANDLE ThreadCreate(HANDLE ProcessHandle, PVOID StartAddress) {
 
     //wprintf(L"  [+] thread created, HANDLE = 0x%p\n", ThreadHandle);
     return ThreadHandle;
+}
+
+bool ThreadSuspend(HANDLE ThreadHandle) {
+
+    NTSTATUS status = ntdll.NtSuspendThread(ThreadHandle, NULL);
+
+    if (!NT_SUCCESS(status)) {
+        wprintf(L"  [-] unable to suspend thread (HANDLE = 0x%p), status = 0x%x\n", ThreadHandle, status);
+        return false;
+    }
+
+    //wprintf(L"  [+] thread suspended, HANDLE = 0x%p\n", ThreadHandle);
+    return true;
 }
 
 bool ThreadResume(HANDLE ThreadHandle) {

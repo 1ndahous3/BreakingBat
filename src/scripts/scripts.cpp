@@ -295,4 +295,29 @@ bool process_write_params(HANDLE ProcessHandle, PRTL_USER_PROCESS_PARAMETERS Par
 
     return true;
 }
+
+unique_c_mem<PEB> process_read_peb(HANDLE ProcessHandle) {
+
+    wprintf(L"  [*] getting process PEB address...\n");
+
+    PROCESS_BASIC_INFORMATION BasicInfo;
+    auto res = sysapi::ProcessGetBasicInfo(ProcessHandle, BasicInfo);
+    if (!res) {
+        return {};
+    }
+
+    unique_c_mem<PEB> process_peb;
+    if (!process_peb.allocate()) {
+        return {};
+    }
+
+    wprintf(L"  [*] reading process PEB at 0x%p...\n", BasicInfo.PebBaseAddress);
+
+    size_t read = sysapi::VirtualMemoryRead(process_peb.data(), sizeof(PEB), BasicInfo.PebBaseAddress, ProcessHandle);
+    if (read == 0) {
+        return {};
+    }
+
+    return process_peb;
+}
 }

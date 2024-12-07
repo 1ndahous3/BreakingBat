@@ -45,12 +45,15 @@ void ProcessParametersDestroy(PRTL_USER_PROCESS_PARAMETERS ProcessParameters);
 process_t ProcessCreateUser(const std::wstring& name, bool suspended = false);
 HANDLE ProcessCreate(HANDLE SectionHandle);
 bool ProcessGetBasicInfo(HANDLE ProcessHandle, PROCESS_BASIC_INFORMATION& BasicInfo);
+bool ProcessGetWow64Info(HANDLE ProcessHandle, bool& is_64);
+
 uint32_t ProcessFind(const wchar_t* name);
 HANDLE ProcessOpen(uint32_t pid, ACCESS_MASK AccessMask = PROCESS_ALL_ACCESS);
 
 HANDLE ThreadOpenNext(HANDLE ProcessHandle, HANDLE ThreadHandle = NULL, ACCESS_MASK AccessMask = THREAD_ALL_ACCESS);
 HANDLE ThreadOpen(uint32_t pid, uint32_t tid, ACCESS_MASK AccessMask = THREAD_ALL_ACCESS);
 HANDLE ThreadCreate(HANDLE ProcessHandle, PVOID StartAddress);
+bool ThreadSuspend(HANDLE ThreadHandle);
 bool ThreadResume(HANDLE ThreadHandle);
 bool ThreadGetContext(HANDLE ThreadHandle, CONTEXT *ctx);
 bool ThreadGetWow64Context(HANDLE ThreadHandle, WOW64_CONTEXT *ctx);

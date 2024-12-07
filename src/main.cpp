@@ -14,6 +14,7 @@ enum {
     OPT_NTDLL_LOAD_COPY,
     OPT_NTDLL_ALTERNATIVE_API,
     // scripts
+    OPT_INJECT_HIJACK_REMOTE_THREAD,
     OPT_INJECT_CREATE_REMOTE_THREAD,
     OPT_INJECT_CREATE_HOLLOW_PROCESS,
     OPT_INJECT_CREATE_DOPPEL_PROCESS,
@@ -33,6 +34,7 @@ CSimpleOptW::SOption g_cli_opts[] = {
     { OPT_NTDLL_LOAD_COPY,        L"--ntdll-load-copy",       SO_NONE },
     { OPT_NTDLL_ALTERNATIVE_API,  L"--ntdll-alternative-api", SO_NONE },
     // scripts
+    { OPT_INJECT_HIJACK_REMOTE_THREAD,  L"inject_hijack_remote_thread",  SO_NONE },
     { OPT_INJECT_CREATE_REMOTE_THREAD,  L"inject_create_remote_thread",  SO_NONE },
     { OPT_INJECT_CREATE_HOLLOW_PROCESS, L"inject_create_hollow_process", SO_NONE },
     { OPT_INJECT_CREATE_DOPPEL_PROCESS, L"inject_create_doppel_process", SO_NONE },
@@ -59,6 +61,9 @@ void print_usage(wchar_t *binary) {
     wprintf(L"\n");
     wprintf(L"Scripts:\n");
 
+    wprintf(L"inject_hijack_remote_thread\n");
+    wprintf(L"  --process (PID or process name)\n");
+    wprintf(L"  --process-memory-init <method>\n");
     wprintf(L"inject_create_remote_thread\n");
     wprintf(L"  --process (PID or process name)\n");
     wprintf(L"  --process-memory-init <method>\n");
@@ -76,6 +81,93 @@ void print_usage(wchar_t *binary) {
     wprintf(L"  --process-memory-init <method>\n");
     wprintf(L"\n");
 }
+
+bool process_args_inject_hijack_remote_thread(wchar_t *binary, CSimpleOptW& args) {
+
+    wprintf(L"| Script: Inject via hijack remote thread\n");
+
+    sysapi::options_t opts;
+    std::wstring process;
+
+    uint8_t method = 0;
+
+    while (args.Next()) {
+
+        if (args.LastError() != SO_SUCCESS) {
+            print_usage(binary);
+            return false;
+        }
+
+        switch (args.OptionId()) {
+
+        case OPT_PROCESS: {
+            process = args.OptionArg();
+            break;
+        }
+
+        case OPT_NTDLL_LOAD_COPY:
+            opts.ntdll_copy = true;
+            break;
+
+        case OPT_NTDLL_ALTERNATIVE_API:
+            opts.ntdll_alt_api = true;
+            break;
+
+        case OPT_PROCESS_MEMORY_INIT: {
+
+            wchar_t* end;
+            uint32_t m = wcstoul(args.OptionArg(), &end, 10);
+            if (errno == ERANGE || m == 0 || m > 3) {
+                print_usage(binary);
+                return false;
+            }
+
+            method = (uint8_t)m;
+            break;
+        }
+
+        default:
+            print_usage(binary);
+            return false;
+        }
+    }
+
+    if (process.empty() || method == 0) {
+        print_usage(binary);
+        return false;
+    }
+
+    wprintf(L"| Options:\n");
+    wprintf(L"|   Process: %s\n", process.c_str());
+    wprintf(L"|   Remote process memory method: %lu\n", method);
+    wprintf(L"|   Load and use copy of ntdll.dll: %hs\n", opts.ntdll_copy ? "true" : "false");
+    wprintf(L"|   Use NT alternative API: %hs\n", opts.ntdll_alt_api ? "true" : "false");
+    wprintf(L"\n");
+
+    uint32_t pid = 0;
+
+    {
+        wchar_t* end;
+        pid = wcstoul(process.c_str(), &end, 10);
+        if (errno == ERANGE) {
+            wprintf(L"  [-] invalid PID\n");
+            return false;
+        }
+
+        if (pid == 0) {
+            pid = sysapi::ProcessFind(process.c_str());
+        }
+
+        if (pid == 0) {
+            wprintf(L"  [-] unable to find process\n");
+            return false;
+        }
+    }
+
+    sysapi::init(opts);
+    return scripts::inject_hijack_remote_thread(pid, (scripts::RemoteProcessMemoryMethod)(method - 1));
+}
+
 
 bool process_args_inject_create_remote_thread(wchar_t *binary, CSimpleOptW& args) {
 
@@ -442,6 +534,13 @@ int wmain(int argc, wchar_t *argv[]) {
 
     case OPT_HELP:
         print_usage(argv[0]);
+        return 0;
+
+    case OPT_INJECT_HIJACK_REMOTE_THREAD:
+        if (!process_args_inject_hijack_remote_thread(argv[0], args)) {
+            return -1;
+        }
+
         return 0;
 
     case OPT_INJECT_CREATE_REMOTE_THREAD:
