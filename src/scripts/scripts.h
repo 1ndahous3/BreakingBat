@@ -46,6 +46,8 @@ bool process_write_params(HANDLE ProcessHandle, PRTL_USER_PROCESS_PARAMETERS Par
 
 unique_c_mem<PEB> process_read_peb(HANDLE ProcessHandle);
 
+sysapi::unique_handle process_find_alertable_thread(HANDLE ProcessHandle);
+
 //
 
 template <bool is_new_thread, bool is_64>

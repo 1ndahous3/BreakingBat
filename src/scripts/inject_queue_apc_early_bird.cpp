@@ -37,7 +37,7 @@ bool inject_queue_apc_early_bird(const std::wstring& original_image, RemoteProce
 
     wprintf(L"\nQueueing APC with shellcode in main thread\n");
 
-    res = sysapi::ApcQueueUserApc(process.hThread.get(), (PPS_APC_ROUTINE)ctx.RemoteBaseAddress);
+    res = sysapi::ThreadQueueUserApc(process.hThread.get(), (PPS_APC_ROUTINE)ctx.RemoteBaseAddress);
     if (!res) {
         return false;
     }

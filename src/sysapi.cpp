@@ -23,6 +23,7 @@ struct ntdll_api_t {
     decltype(::NtMapViewOfSection)* NtMapViewOfSection = nullptr;
     decltype(::NtUnmapViewOfSection)* NtUnmapViewOfSection = nullptr;
     decltype(::NtClose)* NtClose = nullptr;
+    decltype(::NtDuplicateObject)* NtDuplicateObject = nullptr;
     decltype(::NtOpenProcess)* NtOpenProcess = nullptr;
     decltype(::NtQueryInformationProcess)* NtQueryInformationProcess = nullptr;
     decltype(::NtSuspendThread)* NtSuspendThread = nullptr;
@@ -43,6 +44,7 @@ struct ntdll_api_t {
     decltype(::NtQueryInformationFile)* NtQueryInformationFile = nullptr;
     decltype(::NtQueueApcThread)* NtQueueApcThread = nullptr;
     decltype(::NtQueueApcThreadEx)* NtQueueApcThreadEx = nullptr;
+    decltype(::NtCreateEvent)* NtCreateEvent = nullptr;
     decltype(::RtlCreateProcessParametersEx)* RtlCreateProcessParametersEx = nullptr;
     decltype(::RtlDestroyProcessParameters)* RtlDestroyProcessParameters = nullptr;
     decltype(::RtlInitializeContext)* RtlInitializeContext = nullptr;
@@ -84,6 +86,7 @@ void init(const options_t &sysapi_opts) {
     NTDLL_RESOLVE(NtMapViewOfSection);
     NTDLL_RESOLVE(NtUnmapViewOfSection);
     NTDLL_RESOLVE(NtClose);
+    NTDLL_RESOLVE(NtDuplicateObject);
     NTDLL_RESOLVE(NtOpenProcess);
     NTDLL_RESOLVE(NtQueryInformationProcess);
     NTDLL_RESOLVE(NtSuspendThread);
@@ -104,6 +107,7 @@ void init(const options_t &sysapi_opts) {
     NTDLL_RESOLVE(NtQueryInformationFile);
     NTDLL_RESOLVE(NtQueueApcThread);
     NTDLL_RESOLVE(NtQueueApcThreadEx);
+    NTDLL_RESOLVE(NtCreateEvent);
     NTDLL_RESOLVE(RtlCreateProcessParametersEx);
     NTDLL_RESOLVE(RtlDestroyProcessParameters);
     NTDLL_RESOLVE(RtlInitializeContext);
@@ -142,6 +146,7 @@ void init(const options_t &sysapi_opts) {
         NTDLL_RESOLVE(NtMapViewOfSection);
         NTDLL_RESOLVE(NtUnmapViewOfSection);
         NTDLL_RESOLVE(NtClose);
+        NTDLL_RESOLVE(NtDuplicateObject);
         NTDLL_RESOLVE(NtOpenProcess);
         NTDLL_RESOLVE(NtQueryInformationProcess);
         NTDLL_RESOLVE(NtSuspendThread);
@@ -162,6 +167,7 @@ void init(const options_t &sysapi_opts) {
         NTDLL_RESOLVE(NtQueryInformationFile);
         NTDLL_RESOLVE(NtQueueApcThread);
         NTDLL_RESOLVE(NtQueueApcThreadEx);
+        NTDLL_RESOLVE(NtCreateEvent);
         // these functions crash inside guard_dispatch_icall_nop() if called from copy of ntdll.dll
         //NTDLL_RESOLVE(RtlCreateProcessParametersEx);
         //NTDLL_RESOLVE(RtlDestroyProcessParameters);
@@ -707,7 +713,22 @@ void HandleClose(HANDLE Handle) {
         wprintf(L"  [-] unable to close handle (0x%p), status = 0x%x\n", Handle, status);
     }
 
-    ////wprintf(L"  [+] handle closed\n");
+    //wprintf(L"  [+] handle closed\n");
+}
+
+HANDLE HandleDuplicate(HANDLE TargetProcessHandle, HANDLE SourceHandle, HANDLE SourceProcessHandle) {
+
+    HANDLE TargetHandle;
+
+    NTSTATUS status = ntdll.NtDuplicateObject(SourceProcessHandle, SourceHandle, TargetProcessHandle, &TargetHandle, 0, 0, DUPLICATE_SAME_ACCESS);
+
+    if (!NT_SUCCESS(status)) {
+        wprintf(L"  [-] unable to duplicate handle (0x%p), status = 0x%x\n", SourceHandle, status);
+        return NULL;
+    }
+
+    //wprintf(L"  [+] handle duplicated, HANDLE = 0x%p\n", TargetHandle);
+    return TargetHandle;
 }
 
 PVOID VirtualMemoryAllocate(SIZE_T Size, ULONG Protect, HANDLE ProcessHandle, PVOID BaseAddress, ULONG AllocationType) {
@@ -821,15 +842,31 @@ bool TransactionSet(HANDLE hTransaction) {
     return true;
 }
 
-bool ApcQueueUserApc(HANDLE ThreadHandle, PPS_APC_ROUTINE ApcRoutine) {
+bool ThreadQueueUserApc(HANDLE ThreadHandle, PPS_APC_ROUTINE ApcRoutine, PVOID ApcArgument1, PVOID ApcArgument2, PVOID ApcArgument3) {
 
-    NTSTATUS status = ntdll.NtQueueApcThread(ThreadHandle, ApcRoutine, NULL, NULL, NULL);
+    NTSTATUS status = ntdll.NtQueueApcThread(ThreadHandle, ApcRoutine, ApcArgument1, ApcArgument2, ApcArgument3);
     if (!NT_SUCCESS(status)) {
         wprintf(L"  [-] unable to queue user APC (HANDLE = 0x%p), status = 0x%x\n", ThreadHandle, status);
         return false;
     }
 
     return true;
+}
+
+HANDLE EventCreate() {
+
+    HANDLE hEvent;
+
+    OBJECT_ATTRIBUTES ObjectAttributes;
+    InitializeObjectAttributes(&ObjectAttributes, NULL, 0, NULL, NULL);
+
+    NTSTATUS status = ntdll.NtCreateEvent(&hEvent, EVENT_ALL_ACCESS, &ObjectAttributes, NotificationEvent, FALSE);
+    if (!NT_SUCCESS(status)) {
+        wprintf(L"  [-] unable to create event, status = 0x%x\n", status);
+        return NULL;
+    }
+
+    return hEvent;
 }
 
 HANDLE FileOpen(const wchar_t* path) {

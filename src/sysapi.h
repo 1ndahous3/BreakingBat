@@ -27,6 +27,7 @@ struct options_t {
 };
 
 void HandleClose(HANDLE Handle);
+HANDLE HandleDuplicate(HANDLE TargetProcessHandle, HANDLE SourceHandle, HANDLE SourceProcessHandle = GetCurrentProcess());
 
 using unique_handle = unique_resource<HANDLE, HandleClose>;
 
@@ -61,6 +62,8 @@ bool ThreadSetContext(HANDLE ThreadHandle, CONTEXT *ctx);
 bool ThreadSetWow64Context(HANDLE ThreadHandle, WOW64_CONTEXT *ctx);
 bool ThreadCreateStack(HANDLE ProcessHandle, PINITIAL_TEB InitialTeb);
 
+bool ThreadQueueUserApc(HANDLE ThreadHandle, PPS_APC_ROUTINE ApcRoutine, PVOID ApcArgument1 = NULL, PVOID ApcArgument2 = NULL, PVOID ApcArgument3 = NULL);
+
 HANDLE SectionCreate(size_t Size);
 HANDLE SectionFileCreate(HANDLE FileHandle, ACCESS_MASK DesiredAccess, ULONG Protection, bool AsImage = false, SIZE_T Size = 0);
 PVOID SectionMapView(HANDLE SectionHandle, SIZE_T Size, ULONG Protect, HANDLE ProcessHandle = GetCurrentProcess(), PVOID BaseAddress = nullptr);
@@ -75,7 +78,7 @@ HANDLE TransactionCreate(const wchar_t* path);
 bool TransactionRollback(HANDLE hTransaction);
 bool TransactionSet(HANDLE hTransaction);
 
-bool ApcQueueUserApc(HANDLE ThreadHandle, PPS_APC_ROUTINE ApcRoutine);
+HANDLE EventCreate();
 
 HANDLE FileOpen(const wchar_t* path);
 HANDLE FileCreate(const wchar_t* path, size_t Size);

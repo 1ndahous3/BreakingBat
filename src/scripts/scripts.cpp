@@ -320,4 +320,66 @@ unique_c_mem<PEB> process_read_peb(HANDLE ProcessHandle) {
 
     return process_peb;
 }
+
+sysapi::unique_handle process_find_alertable_thread(HANDLE ProcessHandle) {
+
+    sysapi::unique_handle ThreadHandle = sysapi::ThreadOpenNext(ProcessHandle);
+    if (ThreadHandle == NULL) {
+        return NULL;
+    }
+
+    do {
+        sysapi::unique_handle hLocalEvent = sysapi::EventCreate();
+        if (hLocalEvent == NULL) {
+            return NULL;
+        }
+
+        // NOTE: never close remote handle
+        HANDLE hRemoteEvent = sysapi::HandleDuplicate(ProcessHandle, hLocalEvent.get());
+        if (hRemoteEvent == NULL) {
+            ThreadHandle = sysapi::ThreadOpenNext(ProcessHandle, ThreadHandle.get());
+            continue;
+        }
+
+        auto res = sysapi::ThreadSuspend(ThreadHandle.get());
+        if (!res) {
+            ThreadHandle = sysapi::ThreadOpenNext(ProcessHandle, ThreadHandle.get());
+            continue;
+        }
+
+        res = sysapi::ThreadQueueUserApc(ThreadHandle.get(), (PPS_APC_ROUTINE)NtSetEvent, hRemoteEvent);
+        if (!res) {
+            ThreadHandle = sysapi::ThreadOpenNext(ProcessHandle, ThreadHandle.get());
+            continue;
+        }
+
+        res = sysapi::ThreadResume(ThreadHandle.get());
+        if (!res) {
+            ThreadHandle = sysapi::ThreadOpenNext(ProcessHandle, ThreadHandle.get());
+            continue;
+        }
+
+        LARGE_INTEGER Timeout{ .QuadPart = -10000000 }; // 1 second
+
+        NTSTATUS status = NtWaitForSingleObject(hLocalEvent.get(), FALSE, &Timeout);
+        if (!NT_SUCCESS(status)) {
+            wprintf(L"  [-] unable to wait for event, status = 0x%x\n", status);
+            ThreadHandle = sysapi::ThreadOpenNext(ProcessHandle, ThreadHandle.get());
+            continue;
+        }
+
+        if (status == STATUS_TIMEOUT) {
+            wprintf(L"  [!] probably not an alertable thread (HANDLE = 0x%p)\n", ThreadHandle.get());
+            ThreadHandle = sysapi::ThreadOpenNext(ProcessHandle, ThreadHandle.get());
+            continue;
+        }
+
+        return ThreadHandle;
+
+    } while (ThreadHandle != NULL);
+
+    wprintf(L"  [-] unable to find alertable thread, process (HANDLE = 0x%p)\n", ProcessHandle);
+    return NULL;
+}
+
 }
