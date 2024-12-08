@@ -19,6 +19,7 @@ enum {
     OPT_INJECT_CREATE_HOLLOW_PROCESS,
     OPT_INJECT_CREATE_DOPPEL_PROCESS,
     OPT_INJECT_QUEUE_APC,
+    OPT_INJECT_QUEUE_APC_EARLY_BIRD,
     // script options
     OPT_PROCESS,
     OPT_THREAD,
@@ -39,6 +40,7 @@ CSimpleOptW::SOption g_cli_opts[] = {
     { OPT_INJECT_CREATE_HOLLOW_PROCESS, L"inject_create_hollow_process", SO_NONE },
     { OPT_INJECT_CREATE_DOPPEL_PROCESS, L"inject_create_doppel_process", SO_NONE },
     { OPT_INJECT_QUEUE_APC,             L"inject_queue_apc",             SO_NONE },
+    { OPT_INJECT_QUEUE_APC_EARLY_BIRD,  L"inject_queue_apc_early_bird",  SO_NONE },
     // script options
     { OPT_PROCESS,             L"--process",             SO_REQ_SEP},
     { OPT_THREAD,              L"--thread",              SO_REQ_SEP},
@@ -78,6 +80,9 @@ void print_usage(wchar_t *binary) {
     wprintf(L"inject_queue_apc\n");
     wprintf(L"  --process (PID or process name)\n");
     wprintf(L"  --thread (TID), optional\n");
+    wprintf(L"  --process-memory-init <method>\n");
+    wprintf(L"inject_queue_apc_early_bird\n");
+    wprintf(L"  --original-image (filepath)\n");
     wprintf(L"  --process-memory-init <method>\n");
     wprintf(L"\n");
 }
@@ -397,6 +402,7 @@ bool process_args_inject_create_doppel_process(wchar_t *binary, CSimpleOptW& arg
     return scripts::inject_create_process_doppel(original_image, injected_image, (scripts::RemoteProcessMemoryMethod)(method - 1));
 }
 
+
 bool process_args_inject_queue_apc(wchar_t *binary, CSimpleOptW& args) {
 
     wprintf(L"| Script: Inject via queue user APC\n");
@@ -460,7 +466,7 @@ bool process_args_inject_queue_apc(wchar_t *binary, CSimpleOptW& args) {
 
     wprintf(L"| Options:\n");
     wprintf(L"|   Process: %s\n", process.c_str());
-    wprintf(L"|   Threads: %s\n", thread.empty() ? L"all" : thread.c_str() );
+    wprintf(L"|   Threads: %s\n", thread.empty() ? L"all" : thread.c_str());
     wprintf(L"|   Remote process memory method: %lu\n", method);
     wprintf(L"|   Load and use copy of ntdll.dll: %hs\n", opts.ntdll_copy ? "true" : "false");
     wprintf(L"|   Use NT alternative API: %hs\n", opts.ntdll_alt_api ? "true" : "false");
@@ -502,6 +508,71 @@ bool process_args_inject_queue_apc(wchar_t *binary, CSimpleOptW& args) {
     return scripts::inject_queue_apc(pid, tid, (scripts::RemoteProcessMemoryMethod)(method - 1));
 }
 
+
+bool process_args_inject_queue_apc_early_bird(wchar_t *binary, CSimpleOptW& args) {
+
+    wprintf(L"| Script: Inject via queue user APC (early bird)\n");
+
+    sysapi::options_t opts;
+    std::wstring original_image;
+
+    uint8_t method = 0;
+
+    while (args.Next()) {
+
+        if (args.LastError() != SO_SUCCESS) {
+            print_usage(binary);
+            return false;
+        }
+
+        switch (args.OptionId()) {
+
+        case OPT_ORIGINAL_IMAGE:
+            original_image = args.OptionArg();
+            break;
+
+        case OPT_NTDLL_LOAD_COPY:
+            opts.ntdll_copy = true;
+            break;
+
+        case OPT_NTDLL_ALTERNATIVE_API:
+            opts.ntdll_alt_api = true;
+            break;
+
+        case OPT_PROCESS_MEMORY_INIT: {
+
+            wchar_t* end;
+            uint32_t m = wcstoul(args.OptionArg(), &end, 10);
+            if (errno == ERANGE || m == 0 || m > 3) {
+                print_usage(binary);
+                return false;
+            }
+
+            method = (uint8_t)m;
+            break;
+        }
+
+        default:
+            print_usage(binary);
+            return false;
+        }
+    }
+
+    if (method == 0) {
+        print_usage(binary);
+        return false;
+    }
+
+    wprintf(L"| Options:\n");
+    wprintf(L"|   Original image: %s\n", original_image.c_str());
+    wprintf(L"|   Remote process memory method: %lu\n", method);
+    wprintf(L"|   Load and use copy of ntdll.dll: %hs\n", opts.ntdll_copy ? "true" : "false");
+    wprintf(L"|   Use NT alternative API: %hs\n", opts.ntdll_alt_api ? "true" : "false");
+    wprintf(L"\n");
+
+    sysapi::init(opts);
+    return scripts::inject_queue_apc_early_bird(original_image, (scripts::RemoteProcessMemoryMethod)(method - 1));
+}
 
 int wmain(int argc, wchar_t *argv[]) {
 
@@ -566,6 +637,13 @@ int wmain(int argc, wchar_t *argv[]) {
 
     case OPT_INJECT_QUEUE_APC:
         if (!process_args_inject_queue_apc(argv[0], args)) {
+            return -1;
+        }
+
+        return 0;
+
+    case OPT_INJECT_QUEUE_APC_EARLY_BIRD:
+        if (!process_args_inject_queue_apc_early_bird(argv[0], args)) {
             return -1;
         }
 

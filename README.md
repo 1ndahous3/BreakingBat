@@ -1,6 +1,6 @@
 # BreakingBat 🦇
 
-Another tool for pentesting Windows products and the OS itself.
+A very flexible tool for testing Windows security solutions and the OS itself.
 
 ### Features
 - [TODO] The main binary is just an interpreter with special API, the scripts contain the pentest logic
@@ -12,8 +12,10 @@ Another tool for pentesting Windows products and the OS itself.
 
 ### Common pentest scenarios
 - Inject an image/shellcode into an existing/new process
-  - Remote process new thread injection
-  - Remote process APC thread injection
+- (Shell)code thread injection (existing/new process)
+  - Thread injection (InstructionPointer/EntryPoint)
+  - APC thread injection (Finding "Alertable" threads/Early Bird with suspended main thread)
+- Image injection (new process)
   - Process hollowing
   - Process doppelganging
 - [TODO] Filesystem read/modification
