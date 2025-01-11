@@ -10,8 +10,22 @@ target_include_directories(breaking_bat PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/deps
 
 target_compile_definitions(breaking_bat PUBLIC PHNT_VERSION=PHNT_WIN11_24H2 _CRT_SECURE_NO_WARNINGS)
 
+# DIA SDK
+
+set(MSVC_DIA_SDK_DIR "$ENV{VSINSTALLDIR}DIA SDK")
+
+if(NOT(IS_DIRECTORY ${MSVC_DIA_SDK_DIR}))
+    MESSAGE(FATAL_ERROR "DIA SDK directory could not be found")
+else()
+    MESSAGE(NOTICE "DIA SDK directory: ${MSVC_DIA_SDK_DIR}")
+endif()
+
+target_include_directories(breaking_bat PUBLIC "${MSVC_DIA_SDK_DIR}/include")
+target_link_libraries(breaking_bat PUBLIC "${MSVC_DIA_SDK_DIR}/lib/${CMAKE_SYSTEM_PROCESSOR}/diaguids.lib")
+
 target_sources(breaking_bat PRIVATE
     src/sysapi.cpp
+    src/pdb.cpp
     src/hash.cpp
     src/main.cpp
     src/scripts/scripts.cpp
