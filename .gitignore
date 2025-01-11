@@ -1,2 +1,4 @@
 .vs
 out
+src/rpc/*.c
+src/rpc/*.h

@@ -2,7 +2,7 @@
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
-project(breaking_bat CXX)
+project(breaking_bat C CXX)
 add_executable(breaking_bat)
 
 target_include_directories(breaking_bat PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
@@ -23,6 +23,19 @@ endif()
 target_include_directories(breaking_bat PUBLIC "${MSVC_DIA_SDK_DIR}/include")
 target_link_libraries(breaking_bat PUBLIC "${MSVC_DIA_SDK_DIR}/lib/${CMAKE_SYSTEM_PROCESSOR}/diaguids.lib")
 
+# IDL
+
+file(GLOB IDL_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/rpc/*.idl")
+
+foreach(IDL_FILE ${IDL_FILES})
+    add_custom_command(
+        TARGET breaking_bat PRE_BUILD
+        COMMAND midl /notlb /target NT60 /I "${CMAKE_CURRENT_SOURCE_DIR}/src/rpc/" /out "${CMAKE_CURRENT_SOURCE_DIR}/src/rpc/" ${IDL_FILE}
+    )
+endforeach()
+
+file(GLOB IDL_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/rpc/*_i.c")
+
 target_sources(breaking_bat PRIVATE
     src/sysapi.cpp
     src/pdb.cpp
@@ -35,6 +48,7 @@ target_sources(breaking_bat PRIVATE
     src/scripts/inject_create_process_doppel.cpp
     src/scripts/inject_queue_apc.cpp
     src/scripts/inject_queue_apc_early_bird.cpp
+    ${IDL_SOURCES}
 )
 
 foreach(CompilerFlag CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE
