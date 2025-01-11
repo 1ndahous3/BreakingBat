@@ -20,6 +20,7 @@ enum {
     OPT_INJECT_CREATE_DOPPEL_PROCESS,
     OPT_INJECT_QUEUE_APC,
     OPT_INJECT_QUEUE_APC_EARLY_BIRD,
+    OPT_INJECT_COM_IRUNDOWN_DOCALLBACK,
     // script options
     OPT_PROCESS,
     OPT_THREAD,
@@ -35,12 +36,13 @@ CSimpleOptW::SOption g_cli_opts[] = {
     { OPT_NTDLL_LOAD_COPY,        L"--ntdll-load-copy",       SO_NONE },
     { OPT_NTDLL_ALTERNATIVE_API,  L"--ntdll-alternative-api", SO_NONE },
     // scripts
-    { OPT_INJECT_HIJACK_REMOTE_THREAD,  L"inject_hijack_remote_thread",  SO_NONE },
-    { OPT_INJECT_CREATE_REMOTE_THREAD,  L"inject_create_remote_thread",  SO_NONE },
-    { OPT_INJECT_CREATE_HOLLOW_PROCESS, L"inject_create_hollow_process", SO_NONE },
-    { OPT_INJECT_CREATE_DOPPEL_PROCESS, L"inject_create_doppel_process", SO_NONE },
-    { OPT_INJECT_QUEUE_APC,             L"inject_queue_apc",             SO_NONE },
-    { OPT_INJECT_QUEUE_APC_EARLY_BIRD,  L"inject_queue_apc_early_bird",  SO_NONE },
+    { OPT_INJECT_HIJACK_REMOTE_THREAD,    L"inject_hijack_remote_thread",    SO_NONE },
+    { OPT_INJECT_CREATE_REMOTE_THREAD,    L"inject_create_remote_thread",    SO_NONE },
+    { OPT_INJECT_CREATE_HOLLOW_PROCESS,   L"inject_create_hollow_process",   SO_NONE },
+    { OPT_INJECT_CREATE_DOPPEL_PROCESS,   L"inject_create_doppel_process",   SO_NONE },
+    { OPT_INJECT_QUEUE_APC,               L"inject_queue_apc",               SO_NONE },
+    { OPT_INJECT_QUEUE_APC_EARLY_BIRD,    L"inject_queue_apc_early_bird",    SO_NONE },
+    { OPT_INJECT_COM_IRUNDOWN_DOCALLBACK, L"inject_com_irundown_docallback", SO_NONE },
     // script options
     { OPT_PROCESS,             L"--process",             SO_REQ_SEP},
     { OPT_THREAD,              L"--thread",              SO_REQ_SEP},
@@ -83,6 +85,9 @@ void print_usage(wchar_t *binary) {
     wprintf(L"  --process-memory-init <method>\n");
     wprintf(L"inject_queue_apc_early_bird\n");
     wprintf(L"  --original-image (filepath)\n");
+    wprintf(L"  --process-memory-init <method>\n");
+    wprintf(L"inject_com_irundown_docallback\n");
+    wprintf(L"  --process (PID or process name)\n");
     wprintf(L"  --process-memory-init <method>\n");
     wprintf(L"\n");
 }
@@ -574,6 +579,93 @@ bool process_args_inject_queue_apc_early_bird(wchar_t *binary, CSimpleOptW& args
     return scripts::inject_queue_apc_early_bird(original_image, (scripts::RemoteProcessMemoryMethod)(method - 1));
 }
 
+
+bool process_args_inject_com_irundown_docallback(wchar_t *binary, CSimpleOptW& args) {
+
+    wprintf(L"| Script: Inject via COM IRundown::DoCallback()\n");
+
+    sysapi::options_t opts;
+    std::wstring process;
+
+    uint8_t method = 0;
+
+    while (args.Next()) {
+
+        if (args.LastError() != SO_SUCCESS) {
+            print_usage(binary);
+            return false;
+        }
+
+        switch (args.OptionId()) {
+
+        case OPT_PROCESS: {
+            process = args.OptionArg();
+            break;
+        }
+
+        case OPT_NTDLL_LOAD_COPY:
+            opts.ntdll_copy = true;
+            break;
+
+        case OPT_NTDLL_ALTERNATIVE_API:
+            opts.ntdll_alt_api = true;
+            break;
+
+        case OPT_PROCESS_MEMORY_INIT: {
+
+            wchar_t* end;
+            uint32_t m = wcstoul(args.OptionArg(), &end, 10);
+            if (errno == ERANGE || m == 0 || m > 3) {
+                print_usage(binary);
+                return false;
+            }
+
+            method = (uint8_t)m;
+            break;
+        }
+
+        default:
+            print_usage(binary);
+            return false;
+        }
+    }
+
+    if (process.empty() || method == 0) {
+        print_usage(binary);
+        return false;
+    }
+
+    wprintf(L"| Options:\n");
+    wprintf(L"|   Process: %s\n", process.c_str());
+    wprintf(L"|   Remote process memory method: %lu\n", method);
+    wprintf(L"|   Load and use copy of ntdll.dll: %hs\n", opts.ntdll_copy ? "true" : "false");
+    wprintf(L"|   Use NT alternative API: %hs\n", opts.ntdll_alt_api ? "true" : "false");
+    wprintf(L"\n");
+
+    uint32_t pid = 0;
+
+    {
+        wchar_t* end;
+        pid = wcstoul(process.c_str(), &end, 10);
+        if (errno == ERANGE) {
+            wprintf(L"  [-] invalid PID\n");
+            return false;
+        }
+
+        if (pid == 0) {
+            pid = sysapi::ProcessFind(process.c_str());
+        }
+
+        if (pid == 0) {
+            wprintf(L"  [-] unable to find process\n");
+            return false;
+        }
+    }
+
+    sysapi::init(opts);
+    return scripts::inject_com_irundown_docallback(pid, (scripts::RemoteProcessMemoryMethod)(method - 1));
+}
+
 int wmain(int argc, wchar_t *argv[]) {
 
     _setmode(_fileno(stdout), _O_U16TEXT);
@@ -596,7 +688,7 @@ int wmain(int argc, wchar_t *argv[]) {
 
     CSimpleOptW args(argc, argv, g_cli_opts);
 
-    if (!args.Next() || args.LastError() != SO_SUCCESS){
+    if (!args.Next() || args.LastError() != SO_SUCCESS) {
         print_usage(argv[0]);
         return -1;
     }
@@ -644,6 +736,13 @@ int wmain(int argc, wchar_t *argv[]) {
 
     case OPT_INJECT_QUEUE_APC_EARLY_BIRD:
         if (!process_args_inject_queue_apc_early_bird(argv[0], args)) {
+            return -1;
+        }
+
+        return 0;
+
+    case OPT_INJECT_COM_IRUNDOWN_DOCALLBACK:
+        if (!process_args_inject_com_irundown_docallback(argv[0], args)) {
             return -1;
         }
 

@@ -48,6 +48,7 @@ target_sources(breaking_bat PRIVATE
     src/scripts/inject_create_process_doppel.cpp
     src/scripts/inject_queue_apc.cpp
     src/scripts/inject_queue_apc_early_bird.cpp
+    src/scripts/inject_com_irundown_docallback.cpp
     ${IDL_SOURCES}
 )
 

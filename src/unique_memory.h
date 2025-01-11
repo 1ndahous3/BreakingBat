@@ -68,7 +68,7 @@ public:
             Free(m_ptr);
         }
 
-        m_ptr = (Type *)Allocate(size);
+        m_ptr = (Type *)Allocate(size * sizeof(Type));
         return m_ptr != nullptr;
     }
 
@@ -86,6 +86,9 @@ public:
 
     [[nodiscard]]
     Type *data() const noexcept { return m_ptr; }
+
+    [[nodiscard]]
+    Type& operator[](size_t idx) { return m_ptr[idx]; }
 };
 
 template<typename Type>

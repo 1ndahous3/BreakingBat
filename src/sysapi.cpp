@@ -489,6 +489,18 @@ bool ThreadResume(HANDLE ThreadHandle) {
     return true;
 }
 
+bool ThreadGetBasicInfo(HANDLE ThreadHandle, THREAD_BASIC_INFORMATION& BasicInfo) {
+
+    NTSTATUS status = ntdll.NtQueryInformationThread(ThreadHandle, ThreadBasicInformation, &BasicInfo, sizeof(THREAD_BASIC_INFORMATION), NULL);
+
+    if (!NT_SUCCESS(status)) {
+        wprintf(L"  [-] unable to get basic thread information (HANDLE = 0x%p), status = 0x%x\n", ThreadHandle, status);
+        return false;
+    }
+
+    return true;
+}
+
 bool ThreadGetContext(HANDLE ThreadHandle, CONTEXT* ctx) {
 
     NTSTATUS status = ntdll.NtGetContextThread(ThreadHandle, ctx);

@@ -56,6 +56,7 @@ HANDLE ThreadOpen(uint32_t pid, uint32_t tid, ACCESS_MASK AccessMask = THREAD_AL
 HANDLE ThreadCreate(HANDLE ProcessHandle, PVOID StartAddress);
 bool ThreadSuspend(HANDLE ThreadHandle);
 bool ThreadResume(HANDLE ThreadHandle);
+bool ThreadGetBasicInfo(HANDLE ThreadHandle, THREAD_BASIC_INFORMATION& BasicInfo);
 bool ThreadGetContext(HANDLE ThreadHandle, CONTEXT *ctx);
 bool ThreadGetWow64Context(HANDLE ThreadHandle, WOW64_CONTEXT *ctx);
 bool ThreadSetContext(HANDLE ThreadHandle, CONTEXT *ctx);
