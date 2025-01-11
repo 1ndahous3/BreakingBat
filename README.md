@@ -15,28 +15,39 @@ A very flexible tool for testing Windows security solutions and the OS itself.
 - (Shell)code thread injection (existing/new process)
   - Thread injection (InstructionPointer/EntryPoint)
   - APC thread injection (Finding "Alertable" threads/Early Bird with suspended main thread)
+  - COM IRundown::DoCallback() injection
+  - [TODO] NtSetInformationProcess() + ProcessInstrumentationCallback injection
 - Image injection (new process)
   - Process hollowing
   - Process doppelganging
 - [TODO] Filesystem read/modification
 - [TODO] Disk (sectors) read/modification
 - [TODO] Registry read/modification
-- Runtime anti-EDR tricks
-  - Loading and using a copy of **ntdll.dll**
+- [TODO] Runtime anti-EPP/EDR tricks
   - [TODO] Unhooking functions
   - [TODO] AMSI bypass
 - [TODO] Local Privilege Escalation
 - [TODO] Exploitation of TOCTOU bugs
 
-### Some API options
-- API from **ntdll.dll**:
-  - generic functions (available in **ntdll.lib**)
-  - new functions, exported only in newer Windows versions (such as `NtMapViewOfSectionEx()`)
-  - [TODO] non-exported functions, called by offset from symbols (via [DIA SDK](https://learn.microsoft.com/en-us/visualstudio/debugger/debug-interface-access/debug-interface-access-sdk))
-- [TODO] RPC API: functions from RPC client libs (**winspool.drv**, ...)
-- [TODO] RPC API: generated RPC stubs + direct call of `NdrClientCallX()`
-- [TODO] Execute shellcode from executable memory (outside of module images)
-- [TODO] Direct syscalls
+### Some interesting concepts and techniques
+- System modules:
+  - Get functions and global data structures in modules (retreive RVA and offsets from PDB symbols using [DIA API](https://learn.microsoft.com/en-us/visualstudio/debugger/debug-interface-access/debug-interface-access-sdk))
+  - [TODO] Search ROP gadgets in .text section of the image
+  - [TODO] Get RW data cave in .data section of the image (up to the end of the page)
+- NT API:
+  - Most of the system APIs used are functions from **ntdll.dll**, not the **kernel32.dll**/**user32.dll**/... wrappers
+  - Ability to load and use a copy of **ntdll.dll**
+  - Ability to use alternative API only available in newer versions of Windows (such as `NtMapViewOfSectionEx()`)
+  - [TODO] Ability to use direct syscalls
+- RPC API:
+  - Use COM/RPC wrappers
+  - Generate and use RPC interfaces (including undocumented) from IDL files
+  - [TODO] Ability to use functions from RPC client libs (**winspool.drv**, ...)
+  - [TODO] Ability to use direct calls of `NdrClientCallX()` with RPC interfaces generated from IDL files
+  - [TODO] Ability to use direct ALPC calls
+- Execute in remote process:
+  - Allocate and write shellcode to executable memory
+  - [TODO] Execute functions using ROP gadgets in modules
 
 ### Acknowledgments
 
