@@ -447,7 +447,7 @@ HANDLE ThreadCreate(HANDLE ProcessHandle, PVOID StartAddress) {
         status = ntdll.NtCreateThread(&ThreadHandle, THREAD_ALL_ACCESS, &ObjectAttributes, ProcessHandle, Cid, Context, InitialTeb, FALSE);
     }
     else {
-        status = ntdll.NtCreateThreadEx(&ThreadHandle, THREAD_ALL_ACCESS, &ObjectAttributes, ProcessHandle, StartAddress, NULL, 0, 0, 0, 0, NULL);
+        status = ntdll.NtCreateThreadEx(&ThreadHandle, THREAD_ALL_ACCESS, &ObjectAttributes, ProcessHandle, (PUSER_THREAD_START_ROUTINE)StartAddress, NULL, 0, 0, 0, 0, NULL);
     }
 
     if (!NT_SUCCESS(status)) {

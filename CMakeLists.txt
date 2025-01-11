@@ -8,7 +8,7 @@ add_executable(breaking_bat)
 target_include_directories(breaking_bat PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_include_directories(breaking_bat PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/deps/phnt")
 
-target_compile_definitions(breaking_bat PUBLIC PHNT_VERSION=PHNT_WIN11_22H2)
+target_compile_definitions(breaking_bat PUBLIC PHNT_VERSION=PHNT_WIN11_24H2 _CRT_SECURE_NO_WARNINGS)
 
 target_sources(breaking_bat PRIVATE
     src/sysapi.cpp
