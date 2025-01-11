@@ -12,6 +12,7 @@ target_compile_definitions(breaking_bat PUBLIC PHNT_VERSION=PHNT_WIN11_24H2 _CRT
 
 target_sources(breaking_bat PRIVATE
     src/sysapi.cpp
+    src/hash.cpp
     src/main.cpp
     src/scripts/scripts.cpp
     src/scripts/inject_hijack_remote_thread.cpp
