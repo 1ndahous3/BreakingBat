@@ -115,7 +115,7 @@ std::wstring download_pdb(PVOID image, std::wstring folder_path) {
         );
 
         auto pdb_filename = str::to_wstring((char*)codeview_info->PdbFileName);
-        auto pdb_extention_path = std::format(L"{}\\{}1\\{}", pdb_filename, GUID, pdb_filename);
+        auto pdb_extention_path = std::format(L"{}/{}{}/{}", pdb_filename, GUID, codeview_info->Age, pdb_filename);
         auto pdb_filepath = std::format(L"{}\\{}", folder_path, pdb_filename);
 
         wprintf(L"  [*] downloading PDB from the server, it can take a while...\n");
