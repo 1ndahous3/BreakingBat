@@ -171,8 +171,13 @@ bool inject_com_irundown_docallback(uint32_t pid, RemoteProcessMemoryMethod meth
     wchar_t folder_path[MAX_PATH];
     GetTempPathW(MAX_PATH, folder_path);
 
-    auto* combase_module = (PVOID)GetModuleHandleA("combase");
+    auto *combase_module = (PVOID)GetModuleHandleA("combase");
+
     auto combase_pdb_path = pdb::download_pdb(combase_module, folder_path);
+    if (combase_pdb_path.empty()) {
+        wprintf(L"  [-] unable download PDB for combase module");
+        return false;
+    }
 
     size_t ole32_secret_rva = pdb::get_symbol_rva(combase_pdb_path, L"CProcessSecret::s_guidOle32Secret");
     if (ole32_secret_rva == 0) {
