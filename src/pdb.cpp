@@ -68,29 +68,50 @@ struct codeviewInfo_t {
     char PdbFileName[ANYSIZE_ARRAY];
 };
 
+uintptr_t rva_to_file_offset(PVOID image, uintptr_t rva) {
+
+    auto *pDOSHeader = (PIMAGE_DOS_HEADER)image;
+    auto *pNTHeader = (PIMAGE_NT_HEADERS32)PTR_ADD(image, pDOSHeader->e_lfanew);
+
+    auto *section_header = IMAGE_FIRST_SECTION(pNTHeader);
+
+    for (size_t i = 0; i < pNTHeader->FileHeader.NumberOfSections; i++, section_header++) {
+        if (rva >= section_header->VirtualAddress && rva < section_header->VirtualAddress + section_header->Misc.VirtualSize) {
+            return rva - section_header->VirtualAddress + section_header->PointerToRawData;
+        }
+    }
+
+    return 0;
+}
 
 std::wstring download_pdb(PVOID image, std::wstring folder_path) {
 
     constexpr auto symbol_server = L"http://msdl.microsoft.com/download/symbols/";
 
-    auto* pDOSHeader = (PIMAGE_DOS_HEADER)image;
+    auto *pDOSHeader = (PIMAGE_DOS_HEADER)image;
 
-    auto* pNT32Header = (PIMAGE_NT_HEADERS32)PTR_ADD(image, pDOSHeader->e_lfanew);
-    auto* pNT64Header = (PIMAGE_NT_HEADERS64)pNT32Header;
+    auto *pNT32Header = (PIMAGE_NT_HEADERS32)PTR_ADD(image, pDOSHeader->e_lfanew);
+    auto *pNT64Header = (PIMAGE_NT_HEADERS64)pNT32Header;
 
     bool is_64 = pNT32Header->OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC;
 
-    const uintptr_t debug_directory =
+    uintptr_t debug_directory_rva =
         is_64 ?
         pNT64Header->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_DEBUG].VirtualAddress :
         pNT32Header->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_DEBUG].VirtualAddress;
 
-    if (!debug_directory) {
-        wprintf(L"  [-] unable to get PE debug directory\n");
+    if (!debug_directory_rva) {
+        wprintf(L"  [-] unable to get PE debug directory VA\n");
         return {};
     }
 
-    for (auto *current_debug_dir = (IMAGE_DEBUG_DIRECTORY *)PTR_ADD(image, debug_directory);
+    uintptr_t debug_directory_offset = rva_to_file_offset(image, debug_directory_rva);
+    if (!debug_directory_offset) {
+        wprintf(L"  [-] unable to get PE debug directory offset\n");
+        return {};
+    }
+
+    for (auto *current_debug_dir = (IMAGE_DEBUG_DIRECTORY *)PTR_ADD(image, debug_directory_offset);
         current_debug_dir->SizeOfData;
         current_debug_dir++) {
 
