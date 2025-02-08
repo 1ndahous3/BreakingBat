@@ -7,21 +7,13 @@ add_executable(breaking_bat)
 
 target_include_directories(breaking_bat PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_include_directories(breaking_bat PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/deps/phnt")
+target_include_directories(breaking_bat PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/deps/raw_pdb/src")
 
 target_compile_definitions(breaking_bat PUBLIC PHNT_VERSION=PHNT_WIN11_24H2 _CRT_SECURE_NO_WARNINGS)
 
-# DIA SDK
+# RAW PDB
 
-set(MSVC_DIA_SDK_DIR "$ENV{VSINSTALLDIR}DIA SDK")
-
-if(NOT(IS_DIRECTORY ${MSVC_DIA_SDK_DIR}))
-    MESSAGE(FATAL_ERROR "DIA SDK directory could not be found")
-else()
-    MESSAGE(NOTICE "DIA SDK directory: ${MSVC_DIA_SDK_DIR}")
-endif()
-
-target_include_directories(breaking_bat PUBLIC "${MSVC_DIA_SDK_DIR}/include")
-target_link_libraries(breaking_bat PUBLIC "${MSVC_DIA_SDK_DIR}/lib/${CMAKE_SYSTEM_PROCESSOR}/diaguids.lib")
+file(GLOB RAW_PDB_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/deps/raw_pdb/src/*.cpp")
 
 # IDL
 
@@ -38,6 +30,7 @@ file(GLOB IDL_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/rpc/*_i.c")
 
 target_sources(breaking_bat PRIVATE
     src/sysapi.cpp
+    src/fs.cpp
     src/pdb.cpp
     src/hash.cpp
     src/main.cpp
@@ -46,9 +39,11 @@ target_sources(breaking_bat PRIVATE
     src/scripts/inject_create_remote_thread.cpp
     src/scripts/inject_create_process_hollow.cpp
     src/scripts/inject_create_process_doppel.cpp
+    src/scripts/inject_create_process_fork.cpp
     src/scripts/inject_queue_apc.cpp
     src/scripts/inject_queue_apc_early_bird.cpp
     src/scripts/inject_com_irundown_docallback.cpp
+    ${RAW_PDB_SOURCES}
     ${IDL_SOURCES}
 )
 

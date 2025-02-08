@@ -5,7 +5,7 @@ namespace pdb {
 
 std::wstring download_pdb(PVOID image, std::wstring folder_path);
 
-size_t get_symbol_rva(const std::wstring& pdb_filepath, const std::wstring& symbol_name);
-size_t get_field_offset(const std::wstring& pdb_filepath, const std::wstring& struct_name, const std::wstring& field_name);
+bool get_symbol_rva(size_t& rva, PVOID pdb_data, const std::string& symbol_name);
+bool get_field_offset(size_t& offset, PVOID pdb_data, const std::string& class_name, const std::string& field_name);
 
 }

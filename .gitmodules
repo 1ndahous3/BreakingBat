@@ -1,3 +1,6 @@
 [submodule "phnt"]
 	path = deps/phnt
 	url = https://github.com/processhacker/phnt.git
+[submodule "raw_pdb"]
+	path = deps/raw_pdb
+	url = https://github.com/MolecularMatters/raw_pdb.git

@@ -31,7 +31,7 @@ A very flexible tool for testing Windows security solutions and the OS itself.
 
 ### Some interesting concepts and techniques
 - System modules:
-  - Get functions and global data structures in modules (retreive RVA and offsets from PDB symbols using [DIA API](https://learn.microsoft.com/en-us/visualstudio/debugger/debug-interface-access/debug-interface-access-sdk))
+  - Get functions and global data structures in modules (retreive RVA and offsets from PDB symbols)
   - [TODO] Search ROP gadgets in .text section of the image
   - [TODO] Get RW data cave in .data section of the image (up to the end of the page)
 - NT API:
