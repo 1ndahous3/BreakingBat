@@ -4,6 +4,7 @@
 #include "common.h"
 #include "scripts.h"
 #include "sysapi.h"
+#include "fs.h"
 #include "unique_memory.h"
 
 
@@ -36,37 +37,16 @@ bool inject_create_process_hollow(const std::wstring& original_image,
     }
 
     wprintf(L"\nPreparing the injected image\n");
-    wprintf(L"  [*] opening image...\n");
-
-    sysapi::unique_handle ImageHandle = sysapi::FileOpen(injected_image.c_str());
-    if (ImageHandle == NULL) {
-        return false;
-    }
-
-    wprintf(L"  [*] getting image file size...\n");
-
-    size_t FileSize = sysapi::FileGetSize(ImageHandle.get());
-    if (FileSize == NULL) {
-        return false;
-    }
-
     wprintf(L"  [*] mapping image file...\n");
 
-    auto ImageFileSection = sysapi::SectionFileCreate(ImageHandle.get(), SECTION_MAP_READ, PAGE_READONLY);
-    if (ImageFileSection == NULL) {
+    auto image_mapping = fs::map_file(injected_image.c_str());
+    if (image_mapping.handle == NULL) {
         return false;
     }
 
-    // TODO: RAII
-    auto* ImageFileBuffer = sysapi::SectionMapView(ImageFileSection, FileSize, PAGE_READONLY);
-    if (ImageFileBuffer == NULL)
-    {
-        return false;
-    }
-
-    auto* pDOSHeader = (PIMAGE_DOS_HEADER)ImageFileBuffer;
-    auto* pNT32Header = (PIMAGE_NT_HEADERS32)PTR_ADD(ImageFileBuffer, pDOSHeader->e_lfanew);
-    auto* pNT64Header = (PIMAGE_NT_HEADERS64)pNT32Header;
+    auto *pDOSHeader = (PIMAGE_DOS_HEADER)image_mapping.data;
+    auto *pNT32Header = (PIMAGE_NT_HEADERS32)PTR_ADD(image_mapping.data, pDOSHeader->e_lfanew);
+    auto *pNT64Header = (PIMAGE_NT_HEADERS64)pNT32Header;
 
     bool is_64 = pNT32Header->OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC;
 
@@ -98,12 +78,12 @@ bool inject_create_process_hollow(const std::wstring& original_image,
     wprintf(L"\nWriting new image\n");
     wprintf(L"  [*] writing headers at 0x%p...\n", process_peb->ImageBaseAddress);
 
-    res = process_write_memory(ctx, 0, ImageFileBuffer, pNT32Header->OptionalHeader.SizeOfHeaders);
+    res = process_write_memory(ctx, 0, image_mapping.data, pNT32Header->OptionalHeader.SizeOfHeaders);
     if (!res) {
         return false;
     }
 
-    auto* pSections = (PIMAGE_SECTION_HEADER)PTR_ADD(ImageFileBuffer, pDOSHeader->e_lfanew + (is_64 ? sizeof(IMAGE_NT_HEADERS64) : sizeof(IMAGE_NT_HEADERS32)));
+    auto* pSections = (PIMAGE_SECTION_HEADER)PTR_ADD(image_mapping.data, pDOSHeader->e_lfanew + (is_64 ? sizeof(IMAGE_NT_HEADERS64) : sizeof(IMAGE_NT_HEADERS32)));
 
     for (ULONG i = 0; i < pNT32Header->FileHeader.NumberOfSections; i++) {
 
@@ -113,7 +93,7 @@ bool inject_create_process_hollow(const std::wstring& original_image,
 
         wprintf(L"  [*] writing %hs section at 0x%p...\n", (char*)pSections[i].Name, PTR_ADD(process_peb->ImageBaseAddress, pSections[i].VirtualAddress));
 
-        res = process_write_memory(ctx, pSections[i].VirtualAddress, PTR_ADD(ImageFileBuffer, pSections[i].PointerToRawData), pSections[i].SizeOfRawData);
+        res = process_write_memory(ctx, pSections[i].VirtualAddress, PTR_ADD(image_mapping.data, pSections[i].PointerToRawData), pSections[i].SizeOfRawData);
         if (!res) {
             return false;
         }
@@ -121,7 +101,7 @@ bool inject_create_process_hollow(const std::wstring& original_image,
 
     wprintf(L"\nRelocating image\n");
 
-    res = process_pe_image_relocate(ctx, ImageFileBuffer);
+    res = process_pe_image_relocate(ctx, image_mapping.data);
     if (!res) {
         return false;
     }

@@ -31,6 +31,7 @@ file(GLOB IDL_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/rpc/*_i.c")
 target_sources(breaking_bat PRIVATE
     src/sysapi.cpp
     src/fs.cpp
+    src/pe.cpp
     src/pdb.cpp
     src/hash.cpp
     src/main.cpp
@@ -39,7 +40,6 @@ target_sources(breaking_bat PRIVATE
     src/scripts/inject_create_remote_thread.cpp
     src/scripts/inject_create_process_hollow.cpp
     src/scripts/inject_create_process_doppel.cpp
-    src/scripts/inject_create_process_fork.cpp
     src/scripts/inject_queue_apc.cpp
     src/scripts/inject_queue_apc_early_bird.cpp
     src/scripts/inject_com_irundown_docallback.cpp

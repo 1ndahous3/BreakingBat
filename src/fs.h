@@ -1,3 +1,5 @@
+#pragma once
+
 #include "sysapi.h"
 
 namespace fs {

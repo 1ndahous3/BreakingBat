@@ -8,6 +8,7 @@
 #include <string>
 
 #include "common.h"
+#include "fs.h"
 #include "sysapi.h"
 
 struct ntdll_api_t {
@@ -976,43 +977,28 @@ HMODULE LoadLibraryCopyW(const wchar_t* ModulePath) {
     TempModulePath += ModuleName;
 
     {
-        sysapi::unique_handle ModuleHandle = FileOpen(ModulePath);
-        if (ModuleHandle == NULL) {
+        auto module_mapping = fs::map_file(ModulePath);
+        if (module_mapping.handle == NULL) {
             return NULL;
         }
 
-        size_t ModuleSize = FileGetSize(ModuleHandle.get());
-        if (ModuleSize == 0) {
-            return NULL;
-        }
-
-        sysapi::unique_handle ModuleSectionHandle = SectionFileCreate(ModuleHandle.get(), SECTION_MAP_READ, PAGE_READONLY);
-        if (ModuleSectionHandle == NULL) {
-            return NULL;
-        }
-
-        PVOID ModuleImage = SectionMapView(ModuleSectionHandle.get(), ModuleSize, PAGE_READONLY);
-        if (ModuleImage == nullptr) {
-            return NULL;
-        }
-
-        sysapi::unique_handle ModuleCopyHandle = sysapi::FileCreate(TempModulePath.c_str(), ModuleSize);
+        sysapi::unique_handle ModuleCopyHandle = sysapi::FileCreate(TempModulePath.c_str(), module_mapping.size);
         if (ModuleCopyHandle == nullptr) {
             return NULL;
         }
 
-        sysapi::unique_handle ModuleCopySectionHandle = SectionFileCreate(ModuleCopyHandle.get(), SECTION_ALL_ACCESS, PAGE_READWRITE, false, ModuleSize);
+        sysapi::unique_handle ModuleCopySectionHandle = SectionFileCreate(ModuleCopyHandle.get(), SECTION_ALL_ACCESS, PAGE_READWRITE, false, module_mapping.size);
         if (ModuleCopySectionHandle == NULL) {
             return NULL;
         }
 
-        PVOID ModuleCopyImage = SectionMapView(ModuleCopySectionHandle.get(), ModuleSize, PAGE_READWRITE);
+        PVOID ModuleCopyImage = SectionMapView(ModuleCopySectionHandle.get(), module_mapping.size, PAGE_READWRITE);
         if (ModuleCopyImage == nullptr) {
             return NULL;
         }
 
-        memcpy(ModuleCopyImage, ModuleImage, ModuleSize);
-        SectionUnmapView(ModuleImage);
+        memcpy(ModuleCopyImage, module_mapping.data, module_mapping.size);
+        SectionUnmapView(module_mapping.data);
         SectionUnmapView(ModuleCopyImage);
     }
 

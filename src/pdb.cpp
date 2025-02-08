@@ -6,6 +6,7 @@
 #include <cassert>
 
 #include "common.h"
+#include "pe.h"
 
 #include "PDB_RawFile.h"
 #include "PDB_DBIStream.h"
@@ -179,9 +180,8 @@ bool get_symbol(PVOID pdb_data, const std::string& symbol_name, pfn_symbol_callb
                     return;
                 }
 
-                pdb_symbol_t symbol{ .name =name, .rva = rva };
-
-                pfn_symbol_callback(&symbol, ctx);
+                symbol.name = name;
+                symbol.rva = rva;
             });
 
             if (!symbol.name.empty()) {
@@ -372,32 +372,18 @@ bool get_field_offset(size_t& offset, PVOID pdb_data, const std::string& class_n
 
 }
 
-uintptr_t pe_rva_to_offset(PVOID image, uintptr_t rva) {
-
-    auto *pDOSHeader = (PIMAGE_DOS_HEADER)image;
-    auto *pNTHeader = (PIMAGE_NT_HEADERS32)PTR_ADD(image, pDOSHeader->e_lfanew);
-
-    auto *section_header = IMAGE_FIRST_SECTION(pNTHeader);
-
-    for (size_t i = 0; i < pNTHeader->FileHeader.NumberOfSections; i++, section_header++) {
-        if (rva >= section_header->VirtualAddress && rva < section_header->VirtualAddress + section_header->Misc.VirtualSize) {
-            return rva - section_header->VirtualAddress + section_header->PointerToRawData;
-        }
-    }
-
-    return 0;
-}
-
 namespace pdb {
 
-struct codeview_info_t {
-    ULONG CvSignature;
+const DWORD CV_SIGNATURE_RSDS = 0x53445352; // 'SDSR'
+
+struct CV_INFO_PDB70 {
+    DWORD CvSignature;
     GUID Signature;
-    ULONG Age;
-    char PdbFileName[ANYSIZE_ARRAY];
+    DWORD Age;
+    BYTE PdbFileName[ANYSIZE_ARRAY];
 };
 
-std::wstring download_pdb(PVOID image, std::wstring folder_path) {
+std::wstring download_pdb(std::wstring folder_path, PVOID image, bool is_file) {
 
     constexpr auto symbol_server = L"http://msdl.microsoft.com/download/symbols/";
 
@@ -418,7 +404,11 @@ std::wstring download_pdb(PVOID image, std::wstring folder_path) {
         return {};
     }
 
-    uintptr_t debug_directory_offset = debug_directory_rva;
+    uintptr_t debug_directory_offset =
+        is_file ?
+        pe::rva_to_offset(image, debug_directory_rva) :
+        debug_directory_rva;
+
     if (!debug_directory_offset) {
         wprintf(L"  [-] unable to get PE debug directory offset\n");
         return {};
@@ -432,7 +422,15 @@ std::wstring download_pdb(PVOID image, std::wstring folder_path) {
             continue;
         }
 
-        auto *codeview_info = (codeview_info_t *)PTR_ADD(image, current_debug_dir->PointerToRawData);
+        auto *codeview_info = (CV_INFO_PDB70 *)PTR_ADD(image,
+            is_file ?
+            current_debug_dir->PointerToRawData :
+            current_debug_dir->AddressOfRawData
+        );
+
+        if (codeview_info->CvSignature != CV_SIGNATURE_RSDS) {
+            continue;
+        }
 
         auto GUID = std::format(L"{:08X}{:04X}{:04X}{:02X}{:02X}{:02X}{:02X}{:02X}{:02X}{:02X}{:02X}",
             codeview_info->Signature.Data1,
@@ -452,11 +450,14 @@ std::wstring download_pdb(PVOID image, std::wstring folder_path) {
         auto pdb_extention_path = std::format(L"{}/{}{}/{}", pdb_filename, GUID, codeview_info->Age, pdb_filename);
         auto pdb_filepath = std::format(L"{}{}", folder_path, pdb_filename);
 
-        wprintf(L"  [*] downloading PDB from the server, it can take a while...\n");
+        auto url = symbol_server + pdb_extention_path;
 
-        HRESULT hr = URLDownloadToFileW(nullptr, (symbol_server + pdb_extention_path).c_str(), pdb_filepath.c_str(), 0, nullptr);
+        wprintf(L"  [*] PDB URL: %s\n", url.c_str());
+        wprintf(L"  [*] downloading, it can take a while...\n");
+
+        HRESULT hr = URLDownloadToFileW(nullptr, url.c_str(), pdb_filepath.c_str(), 0, nullptr);
         if (FAILED(hr)) {
-            wprintf(L"  [-] unable to download PDB, HRESULT = 0x%x\n", hr);
+            wprintf(L"  [-] unable to download PDB, HRESULT = 0x%x, \n", hr);
             return {};
         }
 
@@ -477,7 +478,7 @@ bool get_symbol_rva(size_t& rva, PVOID pdb_data, const std::string& symbol_name)
     };
 
     if (!raw_pdb::get_symbol(pdb_data, symbol_name, callback, &RVA)) {
-        wprintf(L"  [-] unable to get RVA of %hs", symbol_name.c_str());
+        wprintf(L"  [-] unable to get RVA of %hs\n", symbol_name.c_str());
         return false;
     }
 

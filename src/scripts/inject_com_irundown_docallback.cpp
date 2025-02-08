@@ -195,9 +195,8 @@ bool inject_com_irundown_docallback(uint32_t pid, RemoteProcessMemoryMethod meth
         return false;
     }
 
-    auto com_dll_pdb_path = pdb::download_pdb(com_dll, folder_path);
+    auto com_dll_pdb_path = pdb::download_pdb(folder_path, com_dll, false);
     if (com_dll_pdb_path.empty()) {
-        wprintf(L"  [-] unable download PDB for COM DLL");
         return false;
     }
 
@@ -392,7 +391,6 @@ bool inject_com_irundown_docallback(uint32_t pid, RemoteProcessMemoryMethod meth
             }
 
             server_ctx_addr = GlobalCtxAddr;
-            // TODO: fix IRundown::DoCallback() error RPC_E_SERVERFAULT with global ctx
         }
 
         XAptCallback params = { 0 };
