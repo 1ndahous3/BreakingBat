@@ -60,6 +60,8 @@ size_t default_shellcode_size = sizeof(default_shellcode);
 
 bool process_create_memory(RemoteProcessMemoryContext& ctx) {
 
+    assert(ctx.Size != 0);
+
     switch (ctx.method) {
     case RemoteProcessMemoryMethod::AllocateInAddr:
 
@@ -107,6 +109,8 @@ bool process_create_memory(RemoteProcessMemoryContext& ctx) {
 
 bool process_read_memory(const RemoteProcessMemoryContext& ctx, size_t offset, PVOID Data, SIZE_T Size) {
 
+    assert(Size != 0);
+
     bool res;
 
     if (ctx.LocalBaseAddress == nullptr) {
@@ -121,6 +125,8 @@ bool process_read_memory(const RemoteProcessMemoryContext& ctx, size_t offset, P
 }
 
 bool process_write_memory(const RemoteProcessMemoryContext& ctx, size_t offset, PVOID Data, SIZE_T Size) {
+
+    assert(Size != 0);
 
     bool res;
 
