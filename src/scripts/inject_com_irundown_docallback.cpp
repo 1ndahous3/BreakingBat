@@ -169,10 +169,13 @@ ConnectToIRundown(OID oid, OXID oxid, IPID ipid) {
 // but we need to implement some additional code to get the VA of the loaded COM DLL in a WoW64 process
 // also we need to split some structures into 32/64 variants or replace them with dynamic information from the PDB
 
-bool inject_com_irundown_docallback(uint32_t pid, RemoteProcessMemoryMethod method) {
+bool inject_com_irundown_docallback(uint32_t pid,
+                                    RemoteProcessOpenMethod open_method,
+                                    RemoteProcessMemoryMethod memory_method) {
 
     wprintf(L"\nOpening the target process\n");
-    sysapi::unique_handle ProcessHandle = sysapi::ProcessOpen(pid);
+
+    sysapi::unique_handle ProcessHandle = process_open(open_method, pid);
     if (ProcessHandle == NULL) {
         return false;
     }
@@ -238,7 +241,7 @@ bool inject_com_irundown_docallback(uint32_t pid, RemoteProcessMemoryMethod meth
     }
 
     RemoteProcessMemoryContext ctx;
-    ctx.method = method;
+    ctx.method = memory_method;
     ctx.ProcessHandle = ProcessHandle.get();
 
     ctx.Size = (ULONG)sizeof(CPageAllocator);

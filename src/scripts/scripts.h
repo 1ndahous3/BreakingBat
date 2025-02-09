@@ -19,7 +19,7 @@ enum class RemoteProcessMemoryMethod : uint8_t {
     MaxValue = CreateSectionMapLocalMap
 };
 
-const char *decode(RemoteProcessMemoryMethod memory_method);
+const char *decode(RemoteProcessMemoryMethod method);
 
 
 struct RemoteProcessMemoryContext {
@@ -33,6 +33,16 @@ struct RemoteProcessMemoryContext {
     HANDLE Section = NULL;
     PVOID LocalBaseAddress = nullptr;
 };
+
+enum class RemoteProcessOpenMethod : uint8_t {
+    OpenProcess,
+    OpenProcessByHwnd,
+    MaxValue = OpenProcessByHwnd
+};
+
+const char *decode(RemoteProcessOpenMethod method);
+
+HANDLE process_open(RemoteProcessOpenMethod method, uint32_t pid, ACCESS_MASK AccessMask = PROCESS_ALL_ACCESS);
 
 bool process_create_memory(RemoteProcessMemoryContext& ctx);
 bool process_read_memory(const RemoteProcessMemoryContext& ctx, size_t offset, PVOID Data, SIZE_T Size);
@@ -115,15 +125,25 @@ bool thread_set_execute(HANDLE ThreadHandle, PVOID ExecAddress) {
 
 //
 
-bool inject_hijack_remote_thread(uint32_t pid, RemoteProcessMemoryMethod method);
-bool inject_create_remote_thread(uint32_t pid, RemoteProcessMemoryMethod method);
+bool inject_hijack_remote_thread(uint32_t pid,
+                                 RemoteProcessOpenMethod open_method,
+                                 RemoteProcessMemoryMethod memory_method);
+bool inject_create_remote_thread(uint32_t pid,
+                                 RemoteProcessOpenMethod open_method,
+                                 RemoteProcessMemoryMethod memory_method);
 bool inject_create_process_hollow(const std::wstring& original_image,
                                   const std::wstring& injected_image,
                                   RemoteProcessMemoryMethod method);
 bool inject_create_process_doppel(const std::wstring& original_image,
                                   const std::wstring& injected_image,
                                   RemoteProcessMemoryMethod method);
-bool inject_queue_apc(uint32_t pid, uint32_t tid, RemoteProcessMemoryMethod method);
-bool inject_queue_apc_early_bird(const std::wstring& original_image, RemoteProcessMemoryMethod method);
-bool inject_com_irundown_docallback(uint32_t pid, RemoteProcessMemoryMethod method);
+bool inject_queue_apc(uint32_t pid,
+                      uint32_t tid,
+                      RemoteProcessOpenMethod open_method,
+                      RemoteProcessMemoryMethod memory_method);
+bool inject_queue_apc_early_bird(const std::wstring& original_image,
+                                 RemoteProcessMemoryMethod memory_method);
+bool inject_com_irundown_docallback(uint32_t pid,
+                                    RemoteProcessOpenMethod open_method,
+                                    RemoteProcessMemoryMethod memory_method);
 }

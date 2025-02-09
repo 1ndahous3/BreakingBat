@@ -9,14 +9,26 @@
 
 namespace scripts {
 
-const char *decode(RemoteProcessMemoryMethod memory_method) {
-    switch (memory_method) {
+const char *decode(RemoteProcessMemoryMethod method) {
+    switch (method) {
     case RemoteProcessMemoryMethod::AllocateInAddr:
         return "allocate memory in remote process, work with VAs via virtual memory routines";
     case RemoteProcessMemoryMethod::CreateSectionMap:
         return "create new section, map view for remote process, work with VAs via virtual memory routines";
     case RemoteProcessMemoryMethod::CreateSectionMapLocalMap:
         return "create new section, map view for remote and local processes, work with local VAs directly";
+    default:
+        assert(false);
+        return nullptr;
+    }
+}
+
+const char *decode(RemoteProcessOpenMethod method) {
+    switch (method) {
+    case RemoteProcessOpenMethod::OpenProcess:
+        return "open process using NtOpenProcess()";
+    case RemoteProcessOpenMethod::OpenProcessByHwnd:
+        return "find any window and find window open process using NtUserGetWindowProcessHandle()";
     default:
         assert(false);
         return nullptr;
@@ -57,6 +69,55 @@ char default_shellcode[] =
 
 char* default_shellcode_data = default_shellcode;
 size_t default_shellcode_size = sizeof(default_shellcode);
+
+//
+
+struct EnumWindowsProcOpts {
+    DWORD pid; // in
+    HWND hWnd; // out
+};
+
+BOOL CALLBACK EnumWindowsProc(HWND hWnd, LPARAM lParam) {
+
+    DWORD pid = 0;
+    GetWindowThreadProcessId(hWnd, &pid);
+
+    auto *opts = (EnumWindowsProcOpts *)lParam;
+    if (pid == opts->pid) {
+        opts->hWnd = hWnd;
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+HANDLE process_open(RemoteProcessOpenMethod method, uint32_t pid, ACCESS_MASK AccessMask) {
+
+    switch (method) {
+    case RemoteProcessOpenMethod::OpenProcess:
+        return sysapi::ProcessOpen(pid, AccessMask);
+    case RemoteProcessOpenMethod::OpenProcessByHwnd: {
+
+        EnumWindowsProcOpts opts = {};
+        opts.pid = pid;
+
+        EnumWindows(EnumWindowsProc, (LPARAM)&opts);
+        if (opts.hWnd == NULL) {
+            wprintf(L"  [-] unable to find any windows for the process");
+            return NULL;
+        }
+
+        wprintf(L"  [+] window found, HWND = 0x%p\n", opts.hWnd);
+        //return sysapi::ProcessOpenByHwnd(opts.hWnd, AccessMask); // TODO: research access restrictions
+        return sysapi::ProcessOpenByHwnd(opts.hWnd, PROCESS_VM_OPERATION | PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_DUP_HANDLE);
+    }
+    default:
+        assert(false);
+        return NULL;
+    }
+}
+
+//
 
 bool process_create_memory(RemoteProcessMemoryContext& ctx) {
 

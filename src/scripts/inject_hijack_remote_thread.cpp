@@ -5,10 +5,12 @@
 
 namespace scripts {
 
-bool inject_hijack_remote_thread(uint32_t pid, RemoteProcessMemoryMethod method) {
+bool inject_hijack_remote_thread(uint32_t pid,
+                                 RemoteProcessOpenMethod open_method,
+                                 RemoteProcessMemoryMethod memory_method) {
 
     wprintf(L"\nOpening the target process\n");
-    sysapi::unique_handle ProcessHandle = sysapi::ProcessOpen(pid);
+    sysapi::unique_handle ProcessHandle = process_open(open_method, pid);
     if (ProcessHandle == NULL) {
         return false;
     }
@@ -26,7 +28,7 @@ bool inject_hijack_remote_thread(uint32_t pid, RemoteProcessMemoryMethod method)
     wprintf(L"\nPlacing shellcode in the target process\n");
 
     RemoteProcessMemoryContext ctx;
-    ctx.method = method;
+    ctx.method = memory_method;
     ctx.ProcessHandle = ProcessHandle.get();
     ctx.Size = (ULONG)default_shellcode_size;
 

@@ -49,7 +49,8 @@ bool ProcessGetBasicInfo(HANDLE ProcessHandle, PROCESS_BASIC_INFORMATION& BasicI
 bool ProcessGetWow64Info(HANDLE ProcessHandle, bool& is_64);
 
 uint32_t ProcessFind(const wchar_t* name);
-HANDLE ProcessOpen(uint32_t pid, ACCESS_MASK AccessMask = PROCESS_ALL_ACCESS);
+HANDLE ProcessOpen(uint32_t pid, ACCESS_MASK AccessMask);
+HANDLE ProcessOpenByHwnd(HWND hWnd, ACCESS_MASK AccessMask);
 
 HANDLE ThreadOpenNext(HANDLE ProcessHandle, HANDLE ThreadHandle = NULL, ACCESS_MASK AccessMask = THREAD_ALL_ACCESS);
 HANDLE ThreadOpen(uint32_t pid, uint32_t tid, ACCESS_MASK AccessMask = THREAD_ALL_ACCESS);

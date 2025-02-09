@@ -11,6 +11,19 @@
 #include "fs.h"
 #include "sysapi.h"
 
+
+extern "C" {
+
+NTSYSCALLAPI
+HANDLE
+NTAPI
+NtUserGetWindowProcessHandle(
+    _In_ HWND hWnd,
+    _In_ ACCESS_MASK DesiredAccess
+);
+
+}
+
 struct ntdll_api_t {
 
     HMODULE NtDllModule = NULL;
@@ -63,10 +76,18 @@ struct ntdll_api_t {
 };
 
 
+struct win32u_api_t {
+
+    HMODULE Win32uDllModule = NULL;
+
+    decltype(::NtUserGetWindowProcessHandle)* NtUserGetWindowProcessHandle = nullptr;
+};
+
 
 namespace sysapi {
 
 ntdll_api_t ntdll;
+win32u_api_t win32u;
 
 void init(const options_t &sysapi_opts) {
 
@@ -188,6 +209,17 @@ void init(const options_t &sysapi_opts) {
         }
 #undef NTDLL_RESOLVE
     }
+
+#define WIN32U_RESOLVE(F) \
+    win32u.F = (decltype(::F)*)GetProcAddress(win32u.Win32uDllModule, #F);         \
+    if (win32u.F == nullptr) {                                                     \
+        wprintf(L"  [!] unable to get address of \"%hs\" from win32u.dll\n", #F);  \
+    }
+
+    win32u.Win32uDllModule = GetModuleHandleW(L"win32u.dll");
+
+    WIN32U_RESOLVE(NtUserGetWindowProcessHandle);
+#undef WIN32U_RESOLVE
 
     wprintf(L"\n");
 }
@@ -377,6 +409,18 @@ HANDLE ProcessOpen(uint32_t pid, ACCESS_MASK AccessMask) {
     }
 
     //wprintf(L"  [+] process (PID = %d) opened, HANDLE = 0x%p\n", pid, ProcessHandle);
+    return ProcessHandle;
+}
+
+HANDLE ProcessOpenByHwnd(HWND hWnd, ACCESS_MASK AccessMask) {
+
+    HANDLE ProcessHandle = win32u.NtUserGetWindowProcessHandle(hWnd, AccessMask);
+    if (ProcessHandle == NULL) {
+        wprintf(L"  [-] unable to open process (HWND = 0x%p)\n", hWnd);
+        return NULL;
+    }
+
+    //wprintf(L"  [+] process (HWND = 0x%p) opened, HANDLE = 0x%p\n", hWnd, ProcessHandle);
     return ProcessHandle;
 }
 
