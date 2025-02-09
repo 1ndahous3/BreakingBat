@@ -58,10 +58,10 @@ void print_usage(wchar_t *binary) {
     wprintf(L"Global options:\n");
     wprintf(L"  --ntdll-load-copy (load and use copy of ntdll.dll)\n");
     wprintf(L"  --ntdll-alternative-api (use alternative versions of some NT functions, if available)\n");
-    wprintf(L"  --process-memory-init <method>\n");
-    wprintf(L"    1 - allocate memory in remote process and write via virtual memory routines\n");
-    wprintf(L"    2 - create new section, map view for remote process and write via virtual memory routines\n");
-    wprintf(L"    3 - create new section, map view for remote and local processes and write directly\n");
+    wprintf(L"  --process-memory-init <method> (default: 1)\n");
+    wprintf(L"    1 - %hs\n", scripts::decode(scripts::RemoteProcessMemoryMethod::AllocateInAddr));
+    wprintf(L"    2 - %hs\n", scripts::decode(scripts::RemoteProcessMemoryMethod::CreateSectionMap));
+    wprintf(L"    3 - %hs\n", scripts::decode(scripts::RemoteProcessMemoryMethod::CreateSectionMapLocalMap));
     wprintf(L"\n");
     wprintf(L"Scripts:\n");
 
@@ -99,7 +99,7 @@ bool process_args_inject_hijack_remote_thread(wchar_t *binary, CSimpleOptW& args
     sysapi::options_t opts;
     std::wstring process;
 
-    uint8_t method = 0;
+    auto memory_method = scripts::RemoteProcessMemoryMethod::AllocateInAddr;
 
     while (args.Next()) {
 
@@ -132,7 +132,7 @@ bool process_args_inject_hijack_remote_thread(wchar_t *binary, CSimpleOptW& args
                 return false;
             }
 
-            method = (uint8_t)m;
+            memory_method = (scripts::RemoteProcessMemoryMethod)(m - 1);
             break;
         }
 
@@ -142,14 +142,14 @@ bool process_args_inject_hijack_remote_thread(wchar_t *binary, CSimpleOptW& args
         }
     }
 
-    if (process.empty() || method == 0) {
+    if (process.empty() || memory_method > scripts::RemoteProcessMemoryMethod::MaxValue) {
         print_usage(binary);
         return false;
     }
 
     wprintf(L"| Options:\n");
     wprintf(L"|   Process: %s\n", process.c_str());
-    wprintf(L"|   Remote process memory method: %lu\n", method);
+    wprintf(L"|   Remote process memory method: %lu (%hs)\n", (uint32_t)memory_method + 1, scripts::decode(memory_method));
     wprintf(L"|   Load and use copy of ntdll.dll: %hs\n", opts.ntdll_copy ? "true" : "false");
     wprintf(L"|   Use NT alternative API: %hs\n", opts.ntdll_alt_api ? "true" : "false");
     wprintf(L"\n");
@@ -175,7 +175,7 @@ bool process_args_inject_hijack_remote_thread(wchar_t *binary, CSimpleOptW& args
     }
 
     sysapi::init(opts);
-    return scripts::inject_hijack_remote_thread(pid, (scripts::RemoteProcessMemoryMethod)(method - 1));
+    return scripts::inject_hijack_remote_thread(pid, memory_method);
 }
 
 
@@ -186,7 +186,7 @@ bool process_args_inject_create_remote_thread(wchar_t *binary, CSimpleOptW& args
     sysapi::options_t opts;
     std::wstring process;
 
-    uint8_t method = 0;
+    auto memory_method = scripts::RemoteProcessMemoryMethod::AllocateInAddr;
 
     while (args.Next()) {
 
@@ -219,7 +219,7 @@ bool process_args_inject_create_remote_thread(wchar_t *binary, CSimpleOptW& args
                 return false;
             }
 
-            method = (uint8_t)m;
+            memory_method = (scripts::RemoteProcessMemoryMethod)(m - 1);
             break;
         }
 
@@ -229,14 +229,14 @@ bool process_args_inject_create_remote_thread(wchar_t *binary, CSimpleOptW& args
         }
     }
 
-    if (process.empty() || method == 0) {
+    if (process.empty() || memory_method > scripts::RemoteProcessMemoryMethod::MaxValue) {
         print_usage(binary);
         return false;
     }
 
     wprintf(L"| Options:\n");
     wprintf(L"|   Process: %s\n", process.c_str());
-    wprintf(L"|   Remote process memory method: %lu\n", method);
+    wprintf(L"|   Remote process memory method: %lu (%hs)\n", (uint32_t)memory_method + 1, scripts::decode(memory_method));
     wprintf(L"|   Load and use copy of ntdll.dll: %hs\n", opts.ntdll_copy ? "true" : "false");
     wprintf(L"|   Use NT alternative API: %hs\n", opts.ntdll_alt_api ? "true" : "false");
     wprintf(L"\n");
@@ -262,7 +262,7 @@ bool process_args_inject_create_remote_thread(wchar_t *binary, CSimpleOptW& args
     }
 
     sysapi::init(opts);
-    return scripts::inject_create_remote_thread(pid, (scripts::RemoteProcessMemoryMethod)(method - 1));
+    return scripts::inject_create_remote_thread(pid, memory_method);
 }
 
 
@@ -273,7 +273,7 @@ bool process_args_inject_create_hollow_process(wchar_t *binary, CSimpleOptW& arg
     sysapi::options_t opts;
     std::wstring original_image, injected_image;
 
-    uint8_t method = 0;
+    auto memory_method = scripts::RemoteProcessMemoryMethod::AllocateInAddr;
 
     while (args.Next()) {
 
@@ -309,7 +309,7 @@ bool process_args_inject_create_hollow_process(wchar_t *binary, CSimpleOptW& arg
                 return false;
             }
 
-            method = (uint8_t)m;
+            memory_method = (scripts::RemoteProcessMemoryMethod)(m - 1);
             break;
         }
 
@@ -319,7 +319,7 @@ bool process_args_inject_create_hollow_process(wchar_t *binary, CSimpleOptW& arg
         }
     }
 
-    if (original_image.empty() || injected_image.empty() || method == 0) {
+    if (original_image.empty() || injected_image.empty() || memory_method > scripts::RemoteProcessMemoryMethod::MaxValue) {
         print_usage(binary);
         return false;
     }
@@ -327,13 +327,13 @@ bool process_args_inject_create_hollow_process(wchar_t *binary, CSimpleOptW& arg
     wprintf(L"| Options:\n");
     wprintf(L"|   Original image: %s\n", original_image.c_str());
     wprintf(L"|   Injected image: %s\n", injected_image.c_str());
-    wprintf(L"|   Remote process memory method: %lu\n", method);
+    wprintf(L"|   Remote process memory method: %lu (%hs)\n", (uint32_t)memory_method + 1, scripts::decode(memory_method));
     wprintf(L"|   Load and use copy of ntdll.dll: %hs\n", opts.ntdll_copy ? "true" : "false");
     wprintf(L"|   Use NT alternative API: %hs\n", opts.ntdll_alt_api ? "true" : "false");
     wprintf(L"\n");
 
     sysapi::init(opts);
-    return scripts::inject_create_process_hollow(original_image, injected_image, (scripts::RemoteProcessMemoryMethod)(method - 1));
+    return scripts::inject_create_process_hollow(original_image, injected_image, memory_method);
 }
 
 
@@ -344,7 +344,7 @@ bool process_args_inject_create_doppel_process(wchar_t *binary, CSimpleOptW& arg
     sysapi::options_t opts;
     std::wstring original_image, injected_image;
 
-    uint8_t method = 0;
+    auto memory_method = scripts::RemoteProcessMemoryMethod::AllocateInAddr;
 
     while (args.Next()) {
 
@@ -380,7 +380,7 @@ bool process_args_inject_create_doppel_process(wchar_t *binary, CSimpleOptW& arg
                 return false;
             }
 
-            method = (uint8_t)m;
+            memory_method = (scripts::RemoteProcessMemoryMethod)(m - 1);
             break;
         }
 
@@ -390,7 +390,7 @@ bool process_args_inject_create_doppel_process(wchar_t *binary, CSimpleOptW& arg
         }
     }
 
-    if (original_image.empty() || injected_image.empty() || method == 0) {
+    if (original_image.empty() || injected_image.empty() || memory_method > scripts::RemoteProcessMemoryMethod::MaxValue) {
         print_usage(binary);
         return false;
     }
@@ -398,13 +398,13 @@ bool process_args_inject_create_doppel_process(wchar_t *binary, CSimpleOptW& arg
     wprintf(L"| Options:\n");
     wprintf(L"|   Original image: %s\n", original_image.c_str());
     wprintf(L"|   Injected image: %s\n", injected_image.c_str());
-    wprintf(L"|   Remote process memory method: %lu\n", method);
+    wprintf(L"|   Remote process memory method: %lu (%hs)\n", (uint32_t)memory_method + 1, scripts::decode(memory_method));
     wprintf(L"|   Load and use copy of ntdll.dll: %hs\n", opts.ntdll_copy ? "true" : "false");
     wprintf(L"|   Use NT alternative API: %hs\n", opts.ntdll_alt_api ? "true" : "false");
     wprintf(L"\n");
 
     sysapi::init(opts);
-    return scripts::inject_create_process_doppel(original_image, injected_image, (scripts::RemoteProcessMemoryMethod)(method - 1));
+    return scripts::inject_create_process_doppel(original_image, injected_image, memory_method);
 }
 
 
@@ -416,7 +416,7 @@ bool process_args_inject_queue_apc(wchar_t *binary, CSimpleOptW& args) {
     std::wstring process;
     std::wstring thread;
 
-    uint8_t method = 0;
+    auto memory_method = scripts::RemoteProcessMemoryMethod::AllocateInAddr;
 
     while (args.Next()) {
 
@@ -454,7 +454,7 @@ bool process_args_inject_queue_apc(wchar_t *binary, CSimpleOptW& args) {
                 return false;
             }
 
-            method = (uint8_t)m;
+            memory_method = (scripts::RemoteProcessMemoryMethod)(m - 1);
             break;
         }
 
@@ -464,7 +464,7 @@ bool process_args_inject_queue_apc(wchar_t *binary, CSimpleOptW& args) {
         }
     }
 
-    if (process.empty() || method == 0) {
+    if (process.empty() || memory_method > scripts::RemoteProcessMemoryMethod::MaxValue) {
         print_usage(binary);
         return false;
     }
@@ -472,7 +472,7 @@ bool process_args_inject_queue_apc(wchar_t *binary, CSimpleOptW& args) {
     wprintf(L"| Options:\n");
     wprintf(L"|   Process: %s\n", process.c_str());
     wprintf(L"|   Threads: %s\n", thread.empty() ? L"all" : thread.c_str());
-    wprintf(L"|   Remote process memory method: %lu\n", method);
+    wprintf(L"|   Remote process memory method: %lu (%hs)\n", (uint32_t)memory_method + 1, scripts::decode(memory_method));
     wprintf(L"|   Load and use copy of ntdll.dll: %hs\n", opts.ntdll_copy ? "true" : "false");
     wprintf(L"|   Use NT alternative API: %hs\n", opts.ntdll_alt_api ? "true" : "false");
     wprintf(L"\n");
@@ -510,7 +510,7 @@ bool process_args_inject_queue_apc(wchar_t *binary, CSimpleOptW& args) {
     }
 
     sysapi::init(opts);
-    return scripts::inject_queue_apc(pid, tid, (scripts::RemoteProcessMemoryMethod)(method - 1));
+    return scripts::inject_queue_apc(pid, tid, memory_method);
 }
 
 
@@ -521,7 +521,7 @@ bool process_args_inject_queue_apc_early_bird(wchar_t *binary, CSimpleOptW& args
     sysapi::options_t opts;
     std::wstring original_image;
 
-    uint8_t method = 0;
+    auto memory_method = scripts::RemoteProcessMemoryMethod::AllocateInAddr;
 
     while (args.Next()) {
 
@@ -553,7 +553,7 @@ bool process_args_inject_queue_apc_early_bird(wchar_t *binary, CSimpleOptW& args
                 return false;
             }
 
-            method = (uint8_t)m;
+            memory_method = (scripts::RemoteProcessMemoryMethod)(m - 1);
             break;
         }
 
@@ -563,20 +563,20 @@ bool process_args_inject_queue_apc_early_bird(wchar_t *binary, CSimpleOptW& args
         }
     }
 
-    if (method == 0) {
+    if (memory_method > scripts::RemoteProcessMemoryMethod::MaxValue) {
         print_usage(binary);
         return false;
     }
 
     wprintf(L"| Options:\n");
     wprintf(L"|   Original image: %s\n", original_image.c_str());
-    wprintf(L"|   Remote process memory method: %lu\n", method);
+    wprintf(L"|   Remote process memory method: %lu (%hs)\n", (uint32_t)memory_method + 1, scripts::decode(memory_method));
     wprintf(L"|   Load and use copy of ntdll.dll: %hs\n", opts.ntdll_copy ? "true" : "false");
     wprintf(L"|   Use NT alternative API: %hs\n", opts.ntdll_alt_api ? "true" : "false");
     wprintf(L"\n");
 
     sysapi::init(opts);
-    return scripts::inject_queue_apc_early_bird(original_image, (scripts::RemoteProcessMemoryMethod)(method - 1));
+    return scripts::inject_queue_apc_early_bird(original_image, memory_method);
 }
 
 
@@ -587,7 +587,7 @@ bool process_args_inject_com_irundown_docallback(wchar_t *binary, CSimpleOptW& a
     sysapi::options_t opts;
     std::wstring process;
 
-    uint8_t method = 0;
+    auto memory_method = scripts::RemoteProcessMemoryMethod::AllocateInAddr;
 
     while (args.Next()) {
 
@@ -620,7 +620,7 @@ bool process_args_inject_com_irundown_docallback(wchar_t *binary, CSimpleOptW& a
                 return false;
             }
 
-            method = (uint8_t)m;
+            memory_method = (scripts::RemoteProcessMemoryMethod)(m - 1);
             break;
         }
 
@@ -630,14 +630,14 @@ bool process_args_inject_com_irundown_docallback(wchar_t *binary, CSimpleOptW& a
         }
     }
 
-    if (process.empty() || method == 0) {
+    if (process.empty() || memory_method > scripts::RemoteProcessMemoryMethod::MaxValue) {
         print_usage(binary);
         return false;
     }
 
     wprintf(L"| Options:\n");
     wprintf(L"|   Process: %s\n", process.c_str());
-    wprintf(L"|   Remote process memory method: %lu\n", method);
+    wprintf(L"|   Remote process memory method: %lu (%hs)\n", (uint32_t)memory_method + 1, scripts::decode(memory_method));
     wprintf(L"|   Load and use copy of ntdll.dll: %hs\n", opts.ntdll_copy ? "true" : "false");
     wprintf(L"|   Use NT alternative API: %hs\n", opts.ntdll_alt_api ? "true" : "false");
     wprintf(L"\n");
@@ -663,7 +663,7 @@ bool process_args_inject_com_irundown_docallback(wchar_t *binary, CSimpleOptW& a
     }
 
     sysapi::init(opts);
-    return scripts::inject_com_irundown_docallback(pid, (scripts::RemoteProcessMemoryMethod)(method - 1));
+    return scripts::inject_com_irundown_docallback(pid, memory_method);
 }
 
 int wmain(int argc, wchar_t *argv[]) {

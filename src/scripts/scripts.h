@@ -7,17 +7,19 @@
 
 #include "sysapi.h"
 
-
 namespace scripts {
 
-extern char* default_shellcode_data;
+extern char *default_shellcode_data;
 extern size_t default_shellcode_size;
 
-enum class RemoteProcessMemoryMethod {
+enum class RemoteProcessMemoryMethod : uint8_t {
     AllocateInAddr,
     CreateSectionMap,
-    CreateSectionMapLocalMap
+    CreateSectionMapLocalMap,
+    MaxValue = CreateSectionMapLocalMap
 };
+
+const char *decode(RemoteProcessMemoryMethod memory_method);
 
 
 struct RemoteProcessMemoryContext {

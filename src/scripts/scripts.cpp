@@ -1,4 +1,5 @@
 #include <cstdint>
+#include <cassert>
 
 #include "phnt_windows.h"
 
@@ -7,6 +8,20 @@
 #include "scripts.h"
 
 namespace scripts {
+
+const char *decode(RemoteProcessMemoryMethod memory_method) {
+    switch (memory_method) {
+    case RemoteProcessMemoryMethod::AllocateInAddr:
+        return "allocate memory in remote process, work with VAs via virtual memory routines";
+    case RemoteProcessMemoryMethod::CreateSectionMap:
+        return "create new section, map view for remote process, work with VAs via virtual memory routines";
+    case RemoteProcessMemoryMethod::CreateSectionMapLocalMap:
+        return "create new section, map view for remote and local processes, work with local VAs directly";
+    default:
+        assert(false);
+        return nullptr;
+    }
+}
 
 // MessageBox
 char default_shellcode[] =
