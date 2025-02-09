@@ -58,12 +58,16 @@ bool inject_hijack_remote_thread(uint32_t pid, RemoteProcessMemoryMethod method)
 
     wprintf(L"  [+] thread suspended, HANDLE = 0x%p\n", ThreadHandle.get());
 
+#if defined(_WIN64)
     if (is_64) {
         res = thread_set_execute<false, true>(ThreadHandle.get(), ctx.RemoteBaseAddress);
     }
     else {
+#endif
         res = thread_set_execute<false, false>(ThreadHandle.get(), ctx.RemoteBaseAddress);
+#if defined(_WIN64)
     }
+#endif
 
     if (!res) {
         return false;

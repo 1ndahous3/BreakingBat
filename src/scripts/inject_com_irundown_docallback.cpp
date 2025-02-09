@@ -26,13 +26,13 @@ struct tagPageEntry {
 };
 
 struct CInternalPageAllocator {
-    ULONG64            _cPages;
+    SIZE_T             _cPages;
     tagPageEntry     **_pPageListStart;
     tagPageEntry     **_pPageListEnd;
     UINT               _dwFlags;
     tagPageEntry       _ListHead;
     UINT               _cEntries;
-    ULONG64            _cbPerEntry;
+    SIZE_T             _cbPerEntry;
     USHORT             _cEntriesPerPage;
     void              *_pLock;
 };
@@ -41,7 +41,7 @@ struct CInternalPageAllocator {
 struct CPageAllocator {
     CInternalPageAllocator _pgalloc;
     PVOID                  _hHeap;
-    ULONG64                _cbPerEntry;
+    SIZE_T                 _cbPerEntry;
     INT                    _lNumEntries;
 };
 
@@ -164,6 +164,11 @@ ConnectToIRundown(OID oid, OXID oxid, IPID ipid) {
     return irundown;
 }
 
+// NOTE: all code works with processes with the same bitness as the current binary
+// The main reason is that we can get the VA of the loaded COM DLL for free (it is the same in all processes)
+// but we need to implement some additional code to get the VA of the loaded COM DLL in a WoW64 process
+// also we need to split some structures into 32/64 variants or replace them with dynamic information from the PDB
+
 bool inject_com_irundown_docallback(uint32_t pid, RemoteProcessMemoryMethod method) {
 
     wprintf(L"\nOpening the target process\n");
@@ -173,12 +178,6 @@ bool inject_com_irundown_docallback(uint32_t pid, RemoteProcessMemoryMethod meth
     }
 
     wprintf(L"  [+] process opened, HANDLE = 0x%p\n", ProcessHandle.get());
-
-    bool is_64;
-    bool res = sysapi::ProcessGetWow64Info(ProcessHandle.get(), is_64);
-    if (!res) {
-        return false;
-    }
 
     wprintf(L"\nResolving and reading COM DLL structs...\n");
 
@@ -245,7 +244,7 @@ bool inject_com_irundown_docallback(uint32_t pid, RemoteProcessMemoryMethod meth
     ctx.Size = (ULONG)sizeof(CPageAllocator);
 
     CPageAllocator palloc;
-    res = process_read_memory(ctx, (size_t)PTR_ADD(com_dll, ole32_palloc_rva), &palloc, sizeof(CPageAllocator));
+    bool res = process_read_memory(ctx, (size_t)PTR_ADD(com_dll, ole32_palloc_rva), &palloc, sizeof(CPageAllocator));
     if (!res) {
         return false;
     }
@@ -312,7 +311,7 @@ bool inject_com_irundown_docallback(uint32_t pid, RemoteProcessMemoryMethod meth
             ipid_entry.oxid = oxid_oid.oxid;
             ipid_entry.oid = oxid_oid.oid;
 
-            wprintf(L"  [+] valid entry found, OXID = 0x%zx, IPID = %s\n",
+            wprintf(L"  [+] valid entry found, OXID = 0x%I64x, IPID = %s\n",
                     ipid_entry.oxid,
                     str::to_wstring(ipid_entry.ipid).c_str()
             );
@@ -332,7 +331,7 @@ bool inject_com_irundown_docallback(uint32_t pid, RemoteProcessMemoryMethod meth
         uint32_t tid = ((IPID_VALUES*)&ipid_entry.ipid)->tid;
         bool valid_tid = tid && tid != UINT16_MAX;
 
-        wprintf(L"  [*] binding to OXID = 0x%zx, IPID = %s with %s COM context...\n",
+        wprintf(L"  [*] binding to OXID = 0x%I64x, IPID = %s with %s COM context...\n",
             ipid_entry.oxid,
             str::to_wstring(ipid_entry.ipid).c_str(),
             valid_tid ? L"thread" : L"global"

