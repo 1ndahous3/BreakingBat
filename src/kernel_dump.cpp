@@ -119,7 +119,6 @@ std::vector<process_t> get_processes(const kernel_dump_context_t& ctx) {
         }
 
         processes.emplace_back(std::move(process));
-        //std::wcout << L"Process: " << std::hex << va_eprocess << L", PID: " << std::dec << process.pid << L", Name: " << process.image_file_name << std::endl;
 
         LIST_ENTRY next_process;
         if (!read_value(ctx.parser, va_current_process, next_process)) {
