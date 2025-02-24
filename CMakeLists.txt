@@ -50,6 +50,7 @@ target_sources(breaking_bat PRIVATE
     src/scripts/inject_queue_apc.cpp
     src/scripts/inject_queue_apc_early_bird.cpp
     src/scripts/inject_com_irundown_docallback.cpp
+    src/scripts/execute_rop_gadget_local.cpp
     ${RAW_PDB_SOURCES}
     ${IDL_SOURCES}
 )

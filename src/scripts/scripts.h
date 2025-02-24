@@ -158,4 +158,6 @@ bool inject_queue_apc_early_bird(const std::wstring& original_image,
 bool inject_com_irundown_docallback(uint32_t pid,
                                     RemoteProcessOpenMethod open_method,
                                     RemoteProcessMemoryMethod memory_method);
+void execute_rop_gadget_local();
+
 }

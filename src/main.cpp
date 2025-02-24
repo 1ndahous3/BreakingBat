@@ -21,6 +21,7 @@ enum {
     OPT_INJECT_QUEUE_APC,
     OPT_INJECT_QUEUE_APC_EARLY_BIRD,
     OPT_INJECT_COM_IRUNDOWN_DOCALLBACK,
+    OPT_EXECUTE_ROP_GADGET_LOCAL,
     // script options
     OPT_PROCESS,
     OPT_THREAD,
@@ -44,6 +45,7 @@ CSimpleOptW::SOption g_cli_opts[] = {
     { OPT_INJECT_QUEUE_APC,               L"inject_queue_apc",               SO_NONE },
     { OPT_INJECT_QUEUE_APC_EARLY_BIRD,    L"inject_queue_apc_early_bird",    SO_NONE },
     { OPT_INJECT_COM_IRUNDOWN_DOCALLBACK, L"inject_com_irundown_docallback", SO_NONE },
+    { OPT_EXECUTE_ROP_GADGET_LOCAL,       L"execute_rop_gadget_local",       SO_NONE },
     // script options
     { OPT_PROCESS,             L"--process",             SO_REQ_SEP},
     { OPT_THREAD,              L"--thread",              SO_REQ_SEP},
@@ -94,6 +96,7 @@ void print_usage(wchar_t *binary) {
     wprintf(L"inject_com_irundown_docallback\n");
     wprintf(L"  --process (PID or process name)\n");
     wprintf(L"  --process-memory-init <method>\n");
+    wprintf(L"execute_rop_gadget_local\n");
     wprintf(L"\n");
 }
 
@@ -824,6 +827,13 @@ int wmain(int argc, wchar_t *argv[]) {
         }
 
         return 0;
+
+    case OPT_EXECUTE_ROP_GADGET_LOCAL: {
+        sysapi::options_t opts;
+        sysapi::init(opts);
+        scripts::execute_rop_gadget_local();
+        return 0;
+    }
 
     default:
         print_usage(argv[0]);

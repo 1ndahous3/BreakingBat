@@ -32,8 +32,8 @@ A very flexible tool for testing Windows security solutions and the OS itself.
 ### Some interesting concepts and techniques
 - System modules:
   - Get functions and global data structures in modules (retreive RVA and offsets from PDB symbols)
-  - [TODO] Search ROP gadgets in .text section of the image
-  - [TODO] Get RW data cave in .data section of the image (up to the end of the page)
+  - Search ROP gadgets in .text section of the image
+  - Get RW data cave in .data section of the image (up to the end of the page)
 - NT API:
   - Most of the system APIs used are functions from **ntdll.dll**, not the **kernel32.dll**/**user32.dll**/... wrappers
   - Ability to load and use a copy of **ntdll.dll**
