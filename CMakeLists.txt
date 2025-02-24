@@ -35,6 +35,7 @@ file(GLOB IDL_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/rpc/*_i.c")
 
 target_sources(breaking_bat PRIVATE
     src/sysapi.cpp
+    src/shellcode.cpp
     src/fs.cpp
     src/pe.cpp
     src/pdb.cpp
