@@ -2,12 +2,17 @@
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
-project(breaking_bat C CXX)
+project(breaking_bat
+    LANGUAGES C CXX
+    VERSION "0.1.0"
+)
+
 add_executable(breaking_bat)
 
 target_include_directories(breaking_bat PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_include_directories(breaking_bat PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/deps/phnt")
 target_include_directories(breaking_bat PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/deps/raw_pdb/src")
+target_include_directories(breaking_bat PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/deps/kdmp-parser/src/lib")
 
 target_compile_definitions(breaking_bat PUBLIC PHNT_VERSION=PHNT_WIN11_24H2 _CRT_SECURE_NO_WARNINGS)
 
@@ -34,6 +39,7 @@ target_sources(breaking_bat PRIVATE
     src/pe.cpp
     src/pdb.cpp
     src/hash.cpp
+    src/kernel_dump.cpp
     src/main.cpp
     src/scripts/scripts.cpp
     src/scripts/inject_hijack_remote_thread.cpp
@@ -62,3 +68,5 @@ target_compile_options(breaking_bat PRIVATE /W4 /WX
     /wd4471 # a forward declaration of an unscoped enumeration must have an underlying type
     /guard:cf- # because of 'ControlFlowGuardEnabled' flag checks of caller process in some kernel functions (i.e. 'PspCreateThread()')
 )
+
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/deps/kdmp-parser/src/lib")

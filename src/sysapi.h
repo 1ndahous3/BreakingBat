@@ -83,9 +83,13 @@ bool TransactionSet(HANDLE hTransaction);
 HANDLE EventCreate();
 
 HANDLE FileOpen(const wchar_t* path);
-HANDLE FileCreate(const wchar_t* path, size_t Size);
+HANDLE FileCreate(const wchar_t *path, ACCESS_MASK DesiredAccess, ULONG ShareAccess, size_t Size);
 bool FileWrite(HANDLE FileHandle, PVOID Data, SIZE_T Size);
 size_t FileGetSize(HANDLE FileHandle);
+
+bool AdjustPrivilege(ULONG Privilege);
+
+bool DumpLiveSystem(HANDLE FileHandle);
 
 HMODULE LoadLibraryCopyW(const wchar_t* ModuleName);
 

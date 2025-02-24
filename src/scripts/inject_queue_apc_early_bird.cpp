@@ -20,11 +20,14 @@ bool inject_queue_apc_early_bird(const std::wstring& original_image,
     wprintf(L"\nPlacing shellcode in the target process\n");
 
     RemoteProcessMemoryContext ctx;
-    ctx.method = memory_method;
-    ctx.ProcessHandle = process.hProcess.get();
+    bool res = process_init_memory(ctx, memory_method, process.hProcess.get(), 0);
+    if (!res) {
+        return false;
+    }
+
     ctx.Size = (ULONG)default_shellcode_size;
 
-    bool res = process_create_memory(ctx);
+    res = process_create_memory(ctx);
     if (!res) {
         return false;
     }

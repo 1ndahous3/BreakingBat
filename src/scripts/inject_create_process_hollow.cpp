@@ -54,8 +54,11 @@ bool inject_create_process_hollow(const std::wstring& original_image,
 #endif
 
     RemoteProcessMemoryContext ctx;
-    ctx.method = method;
-    ctx.ProcessHandle = process.hProcess.get();
+    res = process_init_memory(ctx, method, process.hProcess.get(), 0);
+    if (!res) {
+        return false;
+    }
+
     ctx.Size = pNT32Header->OptionalHeader.SizeOfImage;
 
     wprintf(L"\nPlacing the new image in the target process\n");

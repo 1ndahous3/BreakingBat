@@ -26,4 +26,12 @@ std::wstring to_wstring(std::string_view str) {
     return wstr;
 }
 
+inline
+std::string to_string(std::wstring_view wstr) {
+    std::string str(wstr.size(), ' ');
+    str.resize(wcstombs(str.data(), wstr.data(), wstr.size()));
+
+    return str;
+}
+
 }

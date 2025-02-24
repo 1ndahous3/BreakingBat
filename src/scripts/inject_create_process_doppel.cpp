@@ -63,7 +63,7 @@ bool inject_create_process_doppel(const std::wstring& original_image,
 
     sysapi::TransactionSet(TransactionHandle.get());
 
-    sysapi::unique_handle ModuleHandle = sysapi::FileCreate(TempModulePath.c_str(), 0);
+    sysapi::unique_handle ModuleHandle = sysapi::FileCreate(TempModulePath.c_str(), FILE_GENERIC_READ | FILE_GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, 0);
 
     sysapi::TransactionSet(0);
 

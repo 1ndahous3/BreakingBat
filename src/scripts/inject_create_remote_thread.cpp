@@ -20,11 +20,12 @@ bool inject_create_remote_thread(uint32_t pid,
     wprintf(L"\nPlacing shellcode in the target process\n");
 
     RemoteProcessMemoryContext ctx;
-    ctx.method = memory_method;
-    ctx.ProcessHandle = ProcessHandle.get();
-    ctx.Size = (ULONG)default_shellcode_size;
+    bool res = process_init_memory(ctx, memory_method, ProcessHandle.get(), pid);
+    if (!res) {
+        return false;
+    }
 
-    bool res = process_create_memory(ctx);
+    res = process_create_memory(ctx);
     if (!res) {
         return false;
     }

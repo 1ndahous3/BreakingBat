@@ -59,6 +59,8 @@ struct ntdll_api_t {
     decltype(::NtQueueApcThread)* NtQueueApcThread = nullptr;
     decltype(::NtQueueApcThreadEx)* NtQueueApcThreadEx = nullptr;
     decltype(::NtCreateEvent)* NtCreateEvent = nullptr;
+    decltype(::NtSystemDebugControl)* NtSystemDebugControl = nullptr;
+    decltype(::RtlAdjustPrivilege)* RtlAdjustPrivilege = nullptr;
     decltype(::RtlCreateProcessParametersEx)* RtlCreateProcessParametersEx = nullptr;
     decltype(::RtlDestroyProcessParameters)* RtlDestroyProcessParameters = nullptr;
     decltype(::RtlInitializeContext)* RtlInitializeContext = nullptr;
@@ -130,6 +132,8 @@ void init(const options_t &sysapi_opts) {
     NTDLL_RESOLVE(NtQueueApcThread);
     NTDLL_RESOLVE(NtQueueApcThreadEx);
     NTDLL_RESOLVE(NtCreateEvent);
+    NTDLL_RESOLVE(NtSystemDebugControl);
+    NTDLL_RESOLVE(RtlAdjustPrivilege);
     NTDLL_RESOLVE(RtlCreateProcessParametersEx);
     NTDLL_RESOLVE(RtlDestroyProcessParameters);
     NTDLL_RESOLVE(RtlInitializeContext);
@@ -190,7 +194,9 @@ void init(const options_t &sysapi_opts) {
         NTDLL_RESOLVE(NtQueueApcThread);
         NTDLL_RESOLVE(NtQueueApcThreadEx);
         NTDLL_RESOLVE(NtCreateEvent);
+        NTDLL_RESOLVE(NtSystemDebugControl);
         // these functions crash inside guard_dispatch_icall_nop() if called from copy of ntdll.dll
+        //NTDLL_RESOLVE(RtlAdjustPrivilege);
         //NTDLL_RESOLVE(RtlCreateProcessParametersEx);
         //NTDLL_RESOLVE(RtlDestroyProcessParameters);
         //NTDLL_RESOLVE(RtlInitializeContext);
@@ -951,7 +957,7 @@ HANDLE FileOpen(const wchar_t* path) {
     return hFile;
 }
 
-HANDLE FileCreate(const wchar_t* path, size_t Size) {
+HANDLE FileCreate(const wchar_t *path, ACCESS_MASK DesiredAccess, ULONG ShareAccess, size_t Size) {
 
     auto nt_path = L"\\??\\" + std::wstring(path);
 
@@ -967,8 +973,8 @@ HANDLE FileCreate(const wchar_t* path, size_t Size) {
 
     LARGE_INTEGER AllocationSize{ .QuadPart = (LONGLONG)Size };
 
-    NTSTATUS status = ntdll.NtCreateFile(&hFile, FILE_GENERIC_READ | FILE_GENERIC_WRITE, &ObjectAttributes, &IoStatus, &AllocationSize,
-                                         FILE_ATTRIBUTE_NORMAL, FILE_SHARE_READ | FILE_SHARE_WRITE,
+    NTSTATUS status = ntdll.NtCreateFile(&hFile, DesiredAccess, &ObjectAttributes, &IoStatus, &AllocationSize,
+                                         FILE_ATTRIBUTE_NORMAL, ShareAccess,
                                          FILE_OVERWRITE_IF, FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT, NULL, 0);
 
     if (!NT_SUCCESS(status)) {
@@ -1008,6 +1014,50 @@ size_t FileGetSize(HANDLE FileHandle) {
     return (size_t)FileInformation.EndOfFile.QuadPart;
 }
 
+bool AdjustPrivilege(ULONG Privilege) {
+
+    BOOLEAN WasEnabled = FALSE;
+    NTSTATUS status = ntdll.RtlAdjustPrivilege(Privilege, TRUE, FALSE, &WasEnabled);
+    if (!NT_SUCCESS(status)) {
+        wprintf(L"  [-] unable to adjust debug privilege, status = 0x%x\n", status);
+        return false;
+    }
+
+    if (!WasEnabled) {
+        wprintf(L"  [+] debug privilege adjusted\n");
+    }
+
+    return true;
+}
+
+bool DumpLiveSystem(HANDLE FileHandle) {
+
+    if (!AdjustPrivilege(SE_DEBUG_PRIVILEGE)) {
+        return false;
+    }
+
+    SYSDBG_LIVEDUMP_CONTROL LiveDumpControl = { 0 };
+    LiveDumpControl.Version = 1;
+    LiveDumpControl.BugCheckCode = 0x161;
+    LiveDumpControl.DumpFileHandle = FileHandle;
+
+    LiveDumpControl.Flags.CompressMemoryPagesData = 1;
+    LiveDumpControl.Flags.IncludeUserSpaceMemoryPages = 1;
+
+    NTSTATUS status = ntdll.NtSystemDebugControl(SysDbgGetLiveKernelDump, &LiveDumpControl, offsetof(SYSDBG_LIVEDUMP_CONTROL, SelectiveControl), NULL, 0, NULL);
+
+    if (!NT_SUCCESS(status)) {
+        wprintf(L"  [-] unable to get live system dump, status = 0x%x\n", status);
+        if (status == STATUS_DEBUGGER_INACTIVE) {
+            wprintf(L"  [!] the system is probably virtualized\n");
+        }
+        return false;
+    }
+
+    return true;
+}
+
+
 HMODULE LoadLibraryCopyW(const wchar_t* ModulePath) {
 
     std::wstring TempModulePath = {
@@ -1026,7 +1076,7 @@ HMODULE LoadLibraryCopyW(const wchar_t* ModulePath) {
             return NULL;
         }
 
-        sysapi::unique_handle ModuleCopyHandle = sysapi::FileCreate(TempModulePath.c_str(), module_mapping.size);
+        sysapi::unique_handle ModuleCopyHandle = sysapi::FileCreate(TempModulePath.c_str(), FILE_GENERIC_READ | FILE_GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, module_mapping.size);
         if (ModuleCopyHandle == nullptr) {
             return NULL;
         }

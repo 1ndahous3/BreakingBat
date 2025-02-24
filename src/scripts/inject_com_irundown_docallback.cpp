@@ -241,13 +241,15 @@ bool inject_com_irundown_docallback(uint32_t pid,
     }
 
     RemoteProcessMemoryContext ctx;
-    ctx.method = memory_method;
-    ctx.ProcessHandle = ProcessHandle.get();
+    bool res = process_init_memory(ctx, memory_method, ProcessHandle.get(), pid);
+    if (!res) {
+        return false;
+    }
 
     ctx.Size = (ULONG)sizeof(CPageAllocator);
 
     CPageAllocator palloc;
-    bool res = process_read_memory(ctx, (size_t)PTR_ADD(com_dll, ole32_palloc_rva), &palloc, sizeof(CPageAllocator));
+    res = process_read_memory(ctx, (size_t)PTR_ADD(com_dll, ole32_palloc_rva), &palloc, sizeof(CPageAllocator));
     if (!res) {
         return false;
     }

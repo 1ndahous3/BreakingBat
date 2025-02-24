@@ -7,6 +7,8 @@
 
 #include "sysapi.h"
 
+#include "kernel_dump.h"
+
 namespace scripts {
 
 extern char *default_shellcode_data;
@@ -16,7 +18,8 @@ enum class RemoteProcessMemoryMethod : uint8_t {
     AllocateInAddr,
     CreateSectionMap,
     CreateSectionMapLocalMap,
-    MaxValue = CreateSectionMapLocalMap
+    LiveDumpParse, // RO
+    MaxValue = LiveDumpParse
 };
 
 const char *decode(RemoteProcessMemoryMethod method);
@@ -32,6 +35,9 @@ struct RemoteProcessMemoryContext {
 
     HANDLE Section = NULL;
     PVOID LocalBaseAddress = nullptr;
+
+    kernel_dump::kernel_dump_context_t kernel_dump_ctx;
+    kernel_dump::process_t kernel_dump_process;
 };
 
 enum class RemoteProcessOpenMethod : uint8_t {
@@ -44,6 +50,8 @@ const char *decode(RemoteProcessOpenMethod method);
 
 HANDLE process_open(RemoteProcessOpenMethod method, uint32_t pid, ACCESS_MASK AccessMask = PROCESS_ALL_ACCESS);
 
+bool process_init_memory(RemoteProcessMemoryContext& ctx, RemoteProcessMemoryMethod method,
+                         HANDLE ProcessHandle, uint32_t pid);
 bool process_create_memory(RemoteProcessMemoryContext& ctx);
 bool process_read_memory(const RemoteProcessMemoryContext& ctx, size_t offset, PVOID Data, SIZE_T Size);
 bool process_write_memory(const RemoteProcessMemoryContext& ctx, size_t offset, PVOID Data, SIZE_T Size);
@@ -122,6 +130,10 @@ bool thread_set_execute(HANDLE ThreadHandle, PVOID ExecAddress) {
 
     return true;
 }
+
+//
+
+bool system_init_live_dump(kernel_dump::kernel_dump_context_t& ctx);
 
 //
 

@@ -6,6 +6,10 @@
 #include "common.h"
 #include "sysapi.h"
 #include "scripts.h"
+#include "fs.h"
+#include "pdb.h"
+
+#include "kernel_dump.h"
 
 namespace scripts {
 
@@ -17,6 +21,8 @@ const char *decode(RemoteProcessMemoryMethod method) {
         return "create new section, map view for remote process, work with VAs via virtual memory routines";
     case RemoteProcessMemoryMethod::CreateSectionMapLocalMap:
         return "create new section, map view for remote and local processes, work with local VAs directly";
+    case RemoteProcessMemoryMethod::LiveDumpParse:
+        return "create system live dump, parse process memory";
     default:
         assert(false);
         return nullptr;
@@ -119,6 +125,51 @@ HANDLE process_open(RemoteProcessOpenMethod method, uint32_t pid, ACCESS_MASK Ac
 
 //
 
+bool process_init_memory(RemoteProcessMemoryContext& ctx, RemoteProcessMemoryMethod method,
+                         HANDLE ProcessHandle, uint32_t pid) {
+
+    switch (method) {
+    case RemoteProcessMemoryMethod::AllocateInAddr:
+    case RemoteProcessMemoryMethod::CreateSectionMap:
+    case RemoteProcessMemoryMethod::CreateSectionMapLocalMap:
+
+        assert(ProcessHandle);
+        ctx.method = method;
+        ctx.ProcessHandle = ProcessHandle;
+        return true;
+
+    case RemoteProcessMemoryMethod::LiveDumpParse: {
+
+        assert(pid);
+
+        auto res = system_init_live_dump(ctx.kernel_dump_ctx);
+        if (!res) {
+            return false;
+        }
+
+        auto processes = kernel_dump::get_processes(ctx.kernel_dump_ctx);
+        for (const auto& p : processes) {
+            if (p.pid == pid) {
+                ctx.kernel_dump_process = p;
+                break;
+            }
+        }
+
+        if (ctx.kernel_dump_process.pid == 0) {
+            wprintf(L"  [-] unable to find process in system live dump, PID = %d\n", pid);
+            return false;
+        }
+
+        ctx.method = method;
+        return true;
+    }
+
+    default:
+        assert(false);
+        return false;
+    }
+}
+
 bool process_create_memory(RemoteProcessMemoryContext& ctx) {
 
     assert(ctx.Size != 0);
@@ -163,9 +214,16 @@ bool process_create_memory(RemoteProcessMemoryContext& ctx) {
         }
 
         return true;
-    }
 
-    return false;
+    case RemoteProcessMemoryMethod::LiveDumpParse:
+        wprintf(L"  [-] live system dump is RO method\n");
+        assert(false);
+        return false;
+
+    default:
+        assert(false);
+        return false;
+    }
 }
 
 bool process_read_memory(const RemoteProcessMemoryContext& ctx, size_t offset, PVOID Data, SIZE_T Size) {
@@ -174,7 +232,10 @@ bool process_read_memory(const RemoteProcessMemoryContext& ctx, size_t offset, P
 
     bool res;
 
-    if (ctx.LocalBaseAddress == nullptr) {
+    if (ctx.method == RemoteProcessMemoryMethod::LiveDumpParse) {
+        res = kernel_dump::read_data(ctx.kernel_dump_ctx.parser, (uint64_t)PTR_ADD(ctx.RemoteBaseAddress, offset), Data, Size, ctx.kernel_dump_process.dtb);
+    }
+    else if (ctx.LocalBaseAddress == nullptr) {
         res = sysapi::VirtualMemoryRead(Data, Size, PTR_ADD(ctx.RemoteBaseAddress, offset), ctx.ProcessHandle);
     }
     else {
@@ -188,6 +249,12 @@ bool process_read_memory(const RemoteProcessMemoryContext& ctx, size_t offset, P
 bool process_write_memory(const RemoteProcessMemoryContext& ctx, size_t offset, PVOID Data, SIZE_T Size) {
 
     assert(Size != 0);
+
+    if (ctx.method == RemoteProcessMemoryMethod::LiveDumpParse) {
+        wprintf(L"  [-] live system dump is RO method\n");
+        assert(false);
+        return false;
+    }
 
     bool res;
 
@@ -462,6 +529,54 @@ sysapi::unique_handle process_find_alertable_thread(HANDLE ProcessHandle) {
 
     wprintf(L"  [-] unable to find alertable thread, process (HANDLE = 0x%p)\n", ProcessHandle);
     return NULL;
+}
+
+//
+
+bool system_init_live_dump(kernel_dump::kernel_dump_context_t& ctx) {
+
+    auto uCurrentDirectory = sysapi::GetPeb()->ProcessParameters->CurrentDirectory.DosPath;
+
+    std::wstring TempPath = {
+        uCurrentDirectory.Buffer,
+        uCurrentDirectory.Length / sizeof(wchar_t)
+    };
+
+    auto DumpPath = TempPath + L"system.dmp";
+
+    //
+
+    {
+        sysapi::unique_handle DumpPathHandle = sysapi::FileCreate(DumpPath.c_str(), FILE_GENERIC_WRITE, FILE_SHARE_WRITE, 0);
+        if (DumpPathHandle == nullptr) {
+            return false;
+        }
+
+        if (!sysapi::DumpLiveSystem(DumpPathHandle.get())) {
+            return false;
+        }
+    }
+
+    //
+
+    auto kernel_image = fs::map_file(L"c:\\windows\\system32\\ntoskrnl.exe");
+    if (kernel_image.data == NULL) {
+        return false;
+    }
+
+    auto kernel_pdb_path = pdb::download_pdb(TempPath, kernel_image.data, true);
+    if (kernel_pdb_path.empty()) {
+        return false;
+    }
+
+    //
+
+    if (!kernel_dump::init_parser(str::to_string(DumpPath).c_str(), kernel_pdb_path.c_str(), ctx)) {
+        return false;
+    }
+
+    return true;
+
 }
 
 }
