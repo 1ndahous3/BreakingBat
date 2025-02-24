@@ -25,6 +25,8 @@ bool inject_create_remote_thread(uint32_t pid,
         return false;
     }
 
+    ctx.Size = (ULONG)default_shellcode_size;
+
     res = process_create_memory(ctx);
     if (!res) {
         return false;
