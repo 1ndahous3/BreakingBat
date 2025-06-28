@@ -11,10 +11,14 @@ add_executable(breaking_bat)
 
 target_include_directories(breaking_bat PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_include_directories(breaking_bat PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/deps/phnt")
+target_include_directories(breaking_bat PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/deps/spdlog/include")
 target_include_directories(breaking_bat PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/deps/raw_pdb/src")
 target_include_directories(breaking_bat PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/deps/kdmp-parser/src/lib")
 
-target_compile_definitions(breaking_bat PUBLIC PHNT_VERSION=PHNT_WIN11_24H2 _CRT_SECURE_NO_WARNINGS)
+target_compile_definitions(breaking_bat PUBLIC
+                           _CRT_SECURE_NO_WARNINGS
+                           PHNT_VERSION=PHNT_WIN11_24H2
+                           SPDLOG_WCHAR_TO_UTF8_SUPPORT SPDLOG_USE_STD_FORMAT)
 
 # RAW PDB
 
@@ -71,4 +75,7 @@ target_compile_options(breaking_bat PRIVATE /W4 /WX
     /guard:cf- # because of 'ControlFlowGuardEnabled' flag checks of caller process in some kernel functions (i.e. 'PspCreateThread()')
 )
 
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/deps/spdlog")
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/deps/kdmp-parser/src/lib")
+
+target_link_libraries(breaking_bat PRIVATE spdlog::spdlog_header_only)

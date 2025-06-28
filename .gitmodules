@@ -7,3 +7,6 @@
 [submodule "kdmp-parser"]
 	path = deps/kdmp-parser
 	url = https://github.com/0vercl0k/kdmp-parser.git
+[submodule "spdlog"]
+	path = deps/spdlog
+	url = https://github.com/gabime/spdlog

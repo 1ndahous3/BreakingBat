@@ -7,6 +7,7 @@
 
 #include "common.h"
 #include "pe.h"
+#include "logging.h"
 
 #include "PDB_RawFile.h"
 #include "PDB_DBIStream.h"
@@ -191,7 +192,7 @@ bool get_symbol(PVOID pdb_data, const std::string& symbol_name, pfn_symbol_callb
         }
     }
 
-    wprintf(L"  [-] unable to find symbol = %hs\n", symbol_name.c_str());
+    bblog::error("unable to find symbol = {}", symbol_name.c_str());
     return false;
 }
 
@@ -299,7 +300,7 @@ bool get_field_offset(size_t& offset, PVOID pdb_data, const std::string& class_n
     }
 
     if (class_record == nullptr) {
-        wprintf(L"  [-] unable to find TPI record\n");
+        bblog::error("unable to find TPI record");
         return false;
     }
 
@@ -356,7 +357,7 @@ bool get_field_offset(size_t& offset, PVOID pdb_data, const std::string& class_n
         default:
             if (!name) {
                 assert(name && "fields with names must be implemented");
-                wprintf(L"  [-] unable to interate over all fields of the record\n");
+                bblog::error("unable to interate over all fields of the record");
                 return false;
             }
 
@@ -366,7 +367,7 @@ bool get_field_offset(size_t& offset, PVOID pdb_data, const std::string& class_n
         }
     }
 
-    wprintf(L"  [-] unable to find field in the record\n");
+    bblog::error("unable to find field in the record");
     return false;
 }
 
@@ -400,7 +401,7 @@ std::wstring download_pdb(std::wstring folder_path, PVOID image, bool is_file) {
         pNT32Header->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_DEBUG].VirtualAddress;
 
     if (!debug_directory_rva) {
-        wprintf(L"  [-] unable to get PE debug directory VA\n");
+        bblog::error("unable to get PE debug directory VA");
         return {};
     }
 
@@ -410,7 +411,7 @@ std::wstring download_pdb(std::wstring folder_path, PVOID image, bool is_file) {
         debug_directory_rva;
 
     if (!debug_directory_offset) {
-        wprintf(L"  [-] unable to get PE debug directory offset\n");
+        bblog::error("unable to get PE debug directory offset");
         return {};
     }
 
@@ -452,19 +453,19 @@ std::wstring download_pdb(std::wstring folder_path, PVOID image, bool is_file) {
 
         auto url = symbol_server + pdb_extention_path;
 
-        wprintf(L"  [*] PDB URL: %s\n", url.c_str());
-        wprintf(L"  [*] downloading, it can take a while...\n");
+        bblog::info(L"PDB URL: {}", url.c_str());
+        bblog::info("downloading, it can take a while...");
 
         HRESULT hr = URLDownloadToFileW(nullptr, url.c_str(), pdb_filepath.c_str(), 0, nullptr);
         if (FAILED(hr)) {
-            wprintf(L"  [-] unable to download PDB, HRESULT = 0x%x, \n", hr);
+            bblog::error("unable to download PDB, HRESULT = 0x{:x}", hr);
             return {};
         }
 
         return pdb_filepath;
     }
 
-    wprintf(L"  [-] unable to get PE CodeView debug directory\n");
+    bblog::error("unable to get PE CodeView debug directory");
     return {};
 }
 
@@ -478,7 +479,7 @@ bool get_symbol_rva(size_t& rva, PVOID pdb_data, const std::string& symbol_name)
     };
 
     if (!raw_pdb::get_symbol(pdb_data, symbol_name, callback, &RVA)) {
-        wprintf(L"  [-] unable to get RVA of %hs\n", symbol_name.c_str());
+        bblog::error("unable to get RVA of {}", symbol_name.c_str());
         return false;
     }
 
@@ -490,7 +491,7 @@ bool get_symbol_rva(size_t& rva, PVOID pdb_data, const std::string& symbol_name)
 bool get_field_offset(size_t& offset, PVOID pdb_data, const std::string& class_name, const std::string& field_name) {
 
     if (!raw_pdb::get_field_offset(offset, pdb_data, class_name, field_name)) {
-        wprintf(L"  [-] unable to get offset of %hs field in %hs\n", class_name.c_str(), field_name.c_str());
+        bblog::error("unable to get offset of {} field in {}", class_name.c_str(), field_name.c_str());
         return false;
     }
 

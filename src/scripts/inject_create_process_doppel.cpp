@@ -4,6 +4,7 @@
 #include "common.h"
 #include "scripts.h"
 #include "unique_memory.h"
+#include "logging.h"
 
 #include "sysapi.h"
 #include "apiset.h"
@@ -18,22 +19,22 @@ bool inject_create_process_doppel(const std::wstring& original_image,
                                   const std::wstring& injected_image,
                                   RemoteProcessMemoryMethod method) {
 
-    wprintf(L"\nPreparing the injected image\n");
-    wprintf(L"  [*] opening image...\n");
+    bblog::info("[*] Preparing the injected image");
+    bblog::info("opening image...");
 
     sysapi::unique_handle ImageHandle = sysapi::FileOpen(injected_image.c_str());
     if (ImageHandle == NULL) {
         return false;
     }
 
-    wprintf(L"  [*] getting image file size...\n");
+    bblog::info("getting image file size...");
 
     size_t FileSize = sysapi::FileGetSize(ImageHandle.get());
     if (FileSize == NULL) {
         return false;
     }
 
-    wprintf(L"  [*] mapping image file...\n");
+    bblog::info("mapping image file...");
 
     auto ImageFileSection = sysapi::SectionFileCreate(ImageHandle.get(), SECTION_MAP_READ, PAGE_READONLY);
     if (ImageFileSection == NULL) {
@@ -104,9 +105,9 @@ bool inject_create_process_doppel(const std::wstring& original_image,
 
     TransactionHandle.reset();
 
-    wprintf(L"\nPreparing a new process\n");
+    bblog::info("[*] Preparing a new process");
 
-    wprintf(L"  [*] creating process...\n");
+    bblog::info("creating process...");
 
     sysapi::process_t process;
 
@@ -115,7 +116,7 @@ bool inject_create_process_doppel(const std::wstring& original_image,
         return false;
     }
 
-    wprintf(L"  [*] getting process PEB address...\n");
+    bblog::info("getting process PEB address...");
 
     PROCESS_BASIC_INFORMATION BasicInfo;
     res = sysapi::ProcessGetBasicInfo(process.hProcess.get(), BasicInfo);
@@ -128,7 +129,7 @@ bool inject_create_process_doppel(const std::wstring& original_image,
         return false;
     }
 
-    wprintf(L"  [*] reading process PEB at 0x%p...\n", BasicInfo.PebBaseAddress);
+    bblog::info("reading process PEB at 0x{:x}...", (uintptr_t)BasicInfo.PebBaseAddress);
 
     size_t read = sysapi::VirtualMemoryRead(process_peb.data(), sizeof(PEB), BasicInfo.PebBaseAddress, process.hProcess.get());
     if (read == 0) {
@@ -169,7 +170,7 @@ bool inject_create_process_doppel(const std::wstring& original_image,
         return false;
     }
 
-    wprintf(L"\nSuccess\n");
+    bblog::info("[+] Success");
     return true;
 }
 

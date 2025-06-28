@@ -6,6 +6,7 @@
 #include "SimpleOpt.h"
 
 #include "sysapi.h"
+#include "logging.h"
 #include "scripts/scripts.h"
 
 enum {
@@ -178,6 +179,7 @@ bool process_args_inject_hijack_remote_thread(wchar_t *binary, CSimpleOptW& args
     wprintf(L"|   Load and use copy of ntdll.dll: %hs\n", opts.ntdll_copy ? "true" : "false");
     wprintf(L"|   Use NT alternative API: %hs\n", opts.ntdll_alt_api ? "true" : "false");
     wprintf(L"\n");
+    wprintf(L"Script log:\n");
 
     uint32_t pid = 0;
 
@@ -185,7 +187,7 @@ bool process_args_inject_hijack_remote_thread(wchar_t *binary, CSimpleOptW& args
         wchar_t* end;
         pid = wcstoul(process.c_str(), &end, 10);
         if (errno == ERANGE) {
-            wprintf(L"  [-] invalid PID\n");
+            bblog::error(L"invalid PID: {}", process.c_str());
             return false;
         }
 
@@ -194,7 +196,7 @@ bool process_args_inject_hijack_remote_thread(wchar_t *binary, CSimpleOptW& args
         }
 
         if (pid == 0) {
-            wprintf(L"  [-] unable to find process\n");
+            bblog::error(L"unable to find process: {}", process.c_str());
             return false;
         }
     }
@@ -282,6 +284,7 @@ bool process_args_inject_create_remote_thread(wchar_t *binary, CSimpleOptW& args
     wprintf(L"|   Load and use copy of ntdll.dll: %hs\n", opts.ntdll_copy ? "true" : "false");
     wprintf(L"|   Use NT alternative API: %hs\n", opts.ntdll_alt_api ? "true" : "false");
     wprintf(L"\n");
+    wprintf(L"Script log:\n");
 
     uint32_t pid = 0;
 
@@ -289,7 +292,7 @@ bool process_args_inject_create_remote_thread(wchar_t *binary, CSimpleOptW& args
         wchar_t* end;
         pid = wcstoul(process.c_str(), &end, 10);
         if (errno == ERANGE) {
-            wprintf(L"  [-] invalid PID\n");
+            bblog::error(L"invalid PID: {}", process.c_str());
             return false;
         }
 
@@ -298,7 +301,7 @@ bool process_args_inject_create_remote_thread(wchar_t *binary, CSimpleOptW& args
         }
 
         if (pid == 0) {
-            wprintf(L"  [-] unable to find process\n");
+            bblog::error(L"unable to find process: {}", process.c_str());
             return false;
         }
     }
@@ -375,6 +378,7 @@ bool process_args_inject_create_hollow_process(wchar_t *binary, CSimpleOptW& arg
     wprintf(L"|   Load and use copy of ntdll.dll: %hs\n", opts.ntdll_copy ? "true" : "false");
     wprintf(L"|   Use NT alternative API: %hs\n", opts.ntdll_alt_api ? "true" : "false");
     wprintf(L"\n");
+    wprintf(L"Script log:\n");
 
     sysapi::init(opts);
     return scripts::inject_create_process_hollow(original_image, injected_image, memory_method);
@@ -448,6 +452,7 @@ bool process_args_inject_create_doppel_process(wchar_t *binary, CSimpleOptW& arg
     wprintf(L"|   Load and use copy of ntdll.dll: %hs\n", opts.ntdll_copy ? "true" : "false");
     wprintf(L"|   Use NT alternative API: %hs\n", opts.ntdll_alt_api ? "true" : "false");
     wprintf(L"\n");
+    wprintf(L"Script log:\n");
 
     sysapi::init(opts);
     return scripts::inject_create_process_doppel(original_image, injected_image, memory_method);
@@ -539,6 +544,7 @@ bool process_args_inject_queue_apc(wchar_t *binary, CSimpleOptW& args) {
     wprintf(L"|   Load and use copy of ntdll.dll: %hs\n", opts.ntdll_copy ? "true" : "false");
     wprintf(L"|   Use NT alternative API: %hs\n", opts.ntdll_alt_api ? "true" : "false");
     wprintf(L"\n");
+    wprintf(L"Script log:\n");
 
     uint32_t pid = 0;
 
@@ -546,7 +552,7 @@ bool process_args_inject_queue_apc(wchar_t *binary, CSimpleOptW& args) {
         wchar_t* end;
         pid = wcstoul(process.c_str(), &end, 10);
         if (errno == ERANGE) {
-            wprintf(L"  [-] invalid PID\n");
+            bblog::error(L"invalid PID: {}", process.c_str());
             return false;
         }
 
@@ -555,7 +561,7 @@ bool process_args_inject_queue_apc(wchar_t *binary, CSimpleOptW& args) {
         }
 
         if (pid == 0) {
-            wprintf(L"  [-] unable to find process\n");
+            bblog::error(L"unable to find process: {}", process.c_str());
             return false;
         }
     }
@@ -637,6 +643,7 @@ bool process_args_inject_queue_apc_early_bird(wchar_t *binary, CSimpleOptW& args
     wprintf(L"|   Load and use copy of ntdll.dll: %hs\n", opts.ntdll_copy ? "true" : "false");
     wprintf(L"|   Use NT alternative API: %hs\n", opts.ntdll_alt_api ? "true" : "false");
     wprintf(L"\n");
+    wprintf(L"Script log:\n");
 
     sysapi::init(opts);
     return scripts::inject_queue_apc_early_bird(original_image, memory_method);
@@ -721,6 +728,7 @@ bool process_args_inject_com_irundown_docallback(wchar_t *binary, CSimpleOptW& a
     wprintf(L"|   Load and use copy of ntdll.dll: %hs\n", opts.ntdll_copy ? "true" : "false");
     wprintf(L"|   Use NT alternative API: %hs\n", opts.ntdll_alt_api ? "true" : "false");
     wprintf(L"\n");
+    wprintf(L"Script log:\n");
 
     uint32_t pid = 0;
 
@@ -728,7 +736,7 @@ bool process_args_inject_com_irundown_docallback(wchar_t *binary, CSimpleOptW& a
         wchar_t* end;
         pid = wcstoul(process.c_str(), &end, 10);
         if (errno == ERANGE) {
-            wprintf(L"  [-] invalid PID\n");
+            bblog::error(L"invalid PID: {}", process.c_str());
             return false;
         }
 
@@ -737,7 +745,7 @@ bool process_args_inject_com_irundown_docallback(wchar_t *binary, CSimpleOptW& a
         }
 
         if (pid == 0) {
-            wprintf(L"  [-] unable to find process\n");
+            bblog::error(L"unable to find process: {}", process.c_str());
             return false;
         }
     }
@@ -749,6 +757,8 @@ bool process_args_inject_com_irundown_docallback(wchar_t *binary, CSimpleOptW& a
 int wmain(int argc, wchar_t *argv[]) {
 
     _setmode(_fileno(stdout), _O_U16TEXT);
+
+    bblog::set_pattern("[%^%l%$] %v");
 
     wprintf(L"\n");
     wprintf(L" ╔═══════════════════════╗\n");
@@ -831,6 +841,7 @@ int wmain(int argc, wchar_t *argv[]) {
     case OPT_EXECUTE_ROP_GADGET_LOCAL: {
         sysapi::options_t opts;
         sysapi::init(opts);
+        wprintf(L"Script log:\n");
         scripts::execute_rop_gadget_local();
         return 0;
     }

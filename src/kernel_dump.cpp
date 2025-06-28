@@ -1,5 +1,6 @@
 #include "sysapi.h"
 #include "common.h"
+#include "logging.h"
 
 #include <iostream>
 #include <stack>
@@ -49,7 +50,7 @@ bool init_parser(const char *filepath, const wchar_t *pdb_path, kernel_dump_cont
     }
 
     if (!ctx.parser.Parse(filepath)) {
-        wprintf(L"  [-] unable to parse kernel dump\n");
+        bblog::error("unable to parse kernel dump");
         return false;
     }
 
@@ -64,13 +65,13 @@ bool read_data(const kdmpparser::KernelDumpParser& dmp, uint64_t VirtualAddress,
 
         auto pte_base_paddr = dmp.VirtTranslate(pte_base_vaddr, dtb);
         if (!pte_base_paddr.has_value()) {
-            wprintf(L"  [-] unable to find physical address for PT base, vaddr = 0x%I64x\n", pte_base_vaddr);
+            bblog::error("unable to find physical address for PT base, vaddr = 0x{:016x}", pte_base_vaddr);
             return false;
         }
 
         const uint8_t* pte_base_data = dmp.GetPhysicalPage(*pte_base_paddr);
         if (!pte_base_data) {
-            wprintf(L"  [-] unable to get page for PT base, paddr = 0x%I64x\n", *pte_base_paddr);
+            bblog::error("unable to get page for PT base, paddr = 0x{:016x}", *pte_base_paddr);
             return false;
         }
 

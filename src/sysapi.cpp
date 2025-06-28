@@ -10,6 +10,7 @@
 #include "common.h"
 #include "fs.h"
 #include "sysapi.h"
+#include "logging.h"
 
 
 extern "C" {
@@ -94,9 +95,9 @@ win32u_api_t win32u;
 void init(const options_t &sysapi_opts) {
 
 #define NTDLL_RESOLVE(F) \
-    ntdll.F = (decltype(::F)*)GetProcAddress(ntdll.NtDllModule, #F);              \
-    if (ntdll.F == nullptr) {                                                     \
-        wprintf(L"  [!] unable to get address of \"%hs\" from ntdll.dll\n", #F);  \
+    ntdll.F = (decltype(::F)*)GetProcAddress(ntdll.NtDllModule, #F);        \
+    if (ntdll.F == nullptr) {                                               \
+        bblog::warn("unable to get address of \"{}\" from ntdll.dll", #F);  \
     }
 
     ntdll.NtDllModule = GetModuleHandleW(L"ntdll.dll");
@@ -155,9 +156,9 @@ void init(const options_t &sysapi_opts) {
     if (sysapi_opts.ntdll_copy) {
 
 #define NTDLL_RESOLVE(F) \
-        ntdll.F = (decltype(::F)*)GetProcAddress(ntdll.NtDllModule, #F);                     \
-        if (ntdll.F == nullptr) {                                                            \
-            wprintf(L"  [!] unable to get address of \"%hs\" from copy of ntdll.dll\n", #F); \
+        ntdll.F = (decltype(::F)*)GetProcAddress(ntdll.NtDllModule, #F);                \
+        if (ntdll.F == nullptr) {                                                       \
+            bblog::info("unable to get address of \"{}\" from copy of ntdll.dll", #F);  \
         }
 
         // we had to initialize the original API first to use it in this function
@@ -217,9 +218,9 @@ void init(const options_t &sysapi_opts) {
     }
 
 #define WIN32U_RESOLVE(F) \
-    win32u.F = (decltype(::F)*)GetProcAddress(win32u.Win32uDllModule, #F);         \
-    if (win32u.F == nullptr) {                                                     \
-        wprintf(L"  [!] unable to get address of \"%hs\" from win32u.dll\n", #F);  \
+    win32u.F = (decltype(::F)*)GetProcAddress(win32u.Win32uDllModule, #F);   \
+    if (win32u.F == nullptr) {                                               \
+        bblog::warn("unable to get address of \"{}\" from win32u.dll", #F);  \
     }
 
     win32u.Win32uDllModule = GetModuleHandleW(L"win32u.dll");
@@ -260,7 +261,7 @@ PRTL_USER_PROCESS_PARAMETERS ProcessParametersCreate(const std::wstring& name) {
     NTSTATUS status = ntdll.RtlCreateProcessParametersEx(&ProcessParameters, &NtImagePath, &uDllDir, &uCurrentDir, &NtImagePath, ProcessEnvironment, NULL, NULL, NULL, NULL, 0);
 
     if (!NT_SUCCESS(status)) {
-        wprintf(L"  [-] unable to create process parameters, status = 0x%x\n", status);
+        bblog::error("unable to create process parameters, status = 0x{:x}", status);
         return NULL;
     }
 
@@ -282,7 +283,7 @@ process_t ProcessCreateUser(const std::wstring& name, bool suspended) {
     NTSTATUS status = ntdll.RtlCreateProcessParametersEx(&ProcessParameters, &NtImagePath, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, RTL_USER_PROC_PARAMS_NORMALIZED);
 
     if (!NT_SUCCESS(status)) {
-        wprintf(L"  [-] unable to create process parameters, status = 0x%x\n", status);
+        bblog::error("unable to create process parameters, status = 0x{:x}", status);
         return {};
     }
 
@@ -303,7 +304,7 @@ process_t ProcessCreateUser(const std::wstring& name, bool suspended) {
     ntdll.RtlDestroyProcessParameters(ProcessParameters);
 
     if (!NT_SUCCESS(status)) {
-        wprintf(L"  [-] unable to create process, status = 0x%x\n", status);
+        bblog::error("unable to create process, status = 0x{:x}", status);
         return {};
     }
 
@@ -326,7 +327,7 @@ HANDLE ProcessCreate(HANDLE SectionHandle) {
     }
 
     if (!NT_SUCCESS(status)) {
-        wprintf(L"  [-] unable to create process, status = 0x%x\n", status);
+        bblog::error("unable to create process, status = 0x{:x}", status);
         return NULL;
     }
 
@@ -338,7 +339,7 @@ bool ProcessGetBasicInfo(HANDLE ProcessHandle, PROCESS_BASIC_INFORMATION& BasicI
     NTSTATUS status = ntdll.NtQueryInformationProcess(ProcessHandle, ProcessBasicInformation, &BasicInfo, sizeof(PROCESS_BASIC_INFORMATION), NULL);
 
     if (!NT_SUCCESS(status)) {
-        wprintf(L"  [-] unable to get basic process information (HANDLE = 0x%p), status = 0x%x\n", ProcessHandle, status);
+        bblog::error("unable to get basic process information (HANDLE = 0x{:x}), status = 0x{:x}", (uintptr_t)ProcessHandle, status);
         return false;
     }
 
@@ -351,7 +352,7 @@ bool ProcessGetWow64Info(HANDLE ProcessHandle, bool& is_64) {
     NTSTATUS status = ntdll.NtQueryInformationProcess(ProcessHandle, ProcessWow64Information, &Wow64Info, sizeof(ULONG_PTR), NULL);
 
     if (!NT_SUCCESS(status)) {
-        wprintf(L"  [-] unable to get WOW64 process information (HANDLE = 0x%p), status = 0x%x\n", ProcessHandle, status);
+        bblog::error("unable to get WOW64 process information (HANDLE = 0x{:x}), status = 0x{:x}", (uintptr_t)ProcessHandle, status);
         return false;
     }
 
@@ -368,12 +369,12 @@ uint32_t ProcessFind(const wchar_t *name) {
 
     HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, NULL);
     if (snapshot == NULL) {
-        wprintf(L"  [-] unable to create snapshot of processes\n");
+        bblog::error("unable to create snapshot of processes");
         return 0;
     }
 
     if (Process32FirstW(snapshot, &entry) != TRUE) {
-        wprintf(L"  [-] unable to get first process, error = %d\n", GetLastError());
+        bblog::error("unable to get first process, error = {}", GetLastError());
         CloseHandle(snapshot);
         return 0;
     }
@@ -384,10 +385,10 @@ uint32_t ProcessFind(const wchar_t *name) {
             continue;
         }
 
-        //wprintf(L"  [+] process found (name = %s), PID = %d\n", name, entry.th32ProcessID);
+        bblog::debug(L"process found (name = {}), PID = {}", name, entry.th32ProcessID);
 
         if (pid != 0) {
-            wprintf(L"  [-] there are multiple processes with the same name\n");
+            bblog::error("there are multiple processes with the same name");
             pid = 0;
             break;
         }
@@ -410,11 +411,11 @@ HANDLE ProcessOpen(uint32_t pid, ACCESS_MASK AccessMask) {
     NTSTATUS status = ntdll.NtOpenProcess(&ProcessHandle, AccessMask, &ObjectAttributes, &Cid);
 
     if (!NT_SUCCESS(status)) {
-        wprintf(L"  [-] unable to open process (PID = %d), status = 0x%x\n", pid, status);
+        bblog::error("unable to open process (PID = {}), status = 0x{:x}", pid, status);
         return NULL;
     }
 
-    //wprintf(L"  [+] process (PID = %d) opened, HANDLE = 0x%p\n", pid, ProcessHandle);
+    bblog::debug("process (PID = {}) opened, HANDLE = 0x{:x}", pid, (uintptr_t)ProcessHandle);
     return ProcessHandle;
 }
 
@@ -422,11 +423,11 @@ HANDLE ProcessOpenByHwnd(HWND hWnd, ACCESS_MASK AccessMask) {
 
     HANDLE ProcessHandle = win32u.NtUserGetWindowProcessHandle(hWnd, AccessMask);
     if (ProcessHandle == NULL) {
-        wprintf(L"  [-] unable to open process (HWND = 0x%p)\n", hWnd);
+        bblog::error("unable to open process (HWND = 0x{:x})", (uintptr_t)hWnd);
         return NULL;
     }
 
-    //wprintf(L"  [+] process (HWND = 0x%p) opened, HANDLE = 0x%p\n", hWnd, ProcessHandle);
+    bblog::debug("process (HWND = 0x{:x}) opened, HANDLE = 0x{:x}", (uintptr_t)hWnd, (uintptr_t)ProcessHandle);
     return ProcessHandle;
 }
 
@@ -445,13 +446,13 @@ HANDLE ThreadOpenNext(HANDLE ProcessHandle, HANDLE ThreadHandle, ACCESS_MASK Acc
 
     if (!NT_SUCCESS(status)) {
         if (status != STATUS_NO_MORE_ENTRIES) {
-            wprintf(L"  [-] unable to open thread (HANDLE = 0x%p), status = 0x%x\n", ProcessHandle, status);
+            bblog::error("unable to open thread (HANDLE = 0x{:x}), status = 0x{:x}", (uintptr_t)ProcessHandle, status);
         }
 
         return NULL;
     }
 
-    //wprintf(L"  [+] thread opened (HANDLE = 0x%p), HANDLE = 0x%p\n", ProcessHandle, NewThreadHandle);
+    bblog::debug("thread opened (HANDLE = 0x{:x}), HANDLE = 0x{:x}", (uintptr_t)ProcessHandle, (uintptr_t)NewThreadHandle);
     return NewThreadHandle;
 }
 
@@ -466,11 +467,11 @@ HANDLE ThreadOpen(uint32_t pid, uint32_t tid, ACCESS_MASK AccessMask) {
     NTSTATUS status = ntdll.NtOpenThread(&ThreadHandle, AccessMask, &ObjectAttributes, &Cid);
 
     if (!NT_SUCCESS(status)) {
-        wprintf(L"  [-] unable to open thread (PID = %d, TID = %d), status = 0x%x\n", pid, tid, status);
+        bblog::error("unable to open thread (PID = {}, TID = {}), status = 0x{:x}", pid, tid, status);
         return NULL;
     }
 
-    //wprintf(L"  [+] thread (PID = %d, TID = %d) opened, HANDLE = 0x%p\n", pid, tid, ThreadHandle);
+    bblog::debug("thread (PID = {}, TID = {}) opened, HANDLE = 0x{:x}", pid, tid, (uintptr_t)ThreadHandle);
     return ThreadHandle;
 }
 
@@ -502,15 +503,15 @@ HANDLE ThreadCreate(HANDLE ProcessHandle, PVOID StartAddress) {
     }
 
     if (!NT_SUCCESS(status)) {
-        wprintf(L"  [-] unable to create process thread (HANDLE = 0x%p), status = 0x%x\n", ProcessHandle, status);
+        bblog::error("unable to create process thread (HANDLE = 0x{:x}), status = 0x{:x}", (uintptr_t)ProcessHandle, status);
         if (status == STATUS_ACCESS_DENIED) {
-            wprintf(L"  [!] the target process probably has a 'ControlFlowGuard' protection\n");
+            bblog::warn("the target process probably has a 'ControlFlowGuard' protection");
         }
 
         return NULL;
     }
 
-    //wprintf(L"  [+] thread created, HANDLE = 0x%p\n", ThreadHandle);
+    bblog::debug("thread created, HANDLE = 0x{:x}", (uintptr_t)ThreadHandle);
     return ThreadHandle;
 }
 
@@ -519,11 +520,11 @@ bool ThreadSuspend(HANDLE ThreadHandle) {
     NTSTATUS status = ntdll.NtSuspendThread(ThreadHandle, NULL);
 
     if (!NT_SUCCESS(status)) {
-        wprintf(L"  [-] unable to suspend thread (HANDLE = 0x%p), status = 0x%x\n", ThreadHandle, status);
+        bblog::error("unable to suspend thread (HANDLE = 0x{:x}), status = 0x{:x}", (uintptr_t)ThreadHandle, status);
         return false;
     }
 
-    //wprintf(L"  [+] thread suspended, HANDLE = 0x%p\n", ThreadHandle);
+    bblog::debug("thread suspended, HANDLE = 0x{:x}", (uintptr_t)ThreadHandle);
     return true;
 }
 
@@ -532,11 +533,11 @@ bool ThreadResume(HANDLE ThreadHandle) {
     NTSTATUS status = ntdll.NtResumeThread(ThreadHandle, NULL);
 
     if (!NT_SUCCESS(status)) {
-        wprintf(L"  [-] unable to resume thread (HANDLE = 0x%p), status = 0x%x\n", ThreadHandle, status);
+        bblog::error("unable to resume thread (HANDLE = 0x{:x}), status = 0x{:x}", (uintptr_t)ThreadHandle, status);
         return false;
     }
 
-    //wprintf(L"  [+] thread resumed, HANDLE = 0x%p\n", ThreadHandle);
+    bblog::debug("thread resumed, HANDLE = 0x{:x}", (uintptr_t)ThreadHandle);
     return true;
 }
 
@@ -545,7 +546,7 @@ bool ThreadGetBasicInfo(HANDLE ThreadHandle, THREAD_BASIC_INFORMATION& BasicInfo
     NTSTATUS status = ntdll.NtQueryInformationThread(ThreadHandle, ThreadBasicInformation, &BasicInfo, sizeof(THREAD_BASIC_INFORMATION), NULL);
 
     if (!NT_SUCCESS(status)) {
-        wprintf(L"  [-] unable to get basic thread information (HANDLE = 0x%p), status = 0x%x\n", ThreadHandle, status);
+        bblog::error("unable to get basic thread information (HANDLE = 0x{:x}), status = 0x{:x}", (uintptr_t)ThreadHandle, status);
         return false;
     }
 
@@ -557,11 +558,11 @@ bool ThreadGetContext(HANDLE ThreadHandle, CONTEXT* ctx) {
     NTSTATUS status = ntdll.NtGetContextThread(ThreadHandle, ctx);
 
     if (!NT_SUCCESS(status)) {
-        wprintf(L"  [-] unable to get thread context (HANDLE = 0x%p), status = 0x%x\n", ThreadHandle, status);
+        bblog::error("unable to get thread context (HANDLE = 0x{:x}), status = 0x{:x}", (uintptr_t)ThreadHandle, status);
         return false;
     }
 
-    ////wprintf(L"  [+] thread context get");
+    bblog::debug("thread context got");
     return true;
 }
 
@@ -570,11 +571,11 @@ bool ThreadGetWow64Context(HANDLE ThreadHandle, WOW64_CONTEXT* ctx) {
     NTSTATUS status = ntdll.NtQueryInformationThread(ThreadHandle, ThreadWow64Context, ctx, sizeof(WOW64_CONTEXT), NULL);
 
     if (!NT_SUCCESS(status)) {
-        wprintf(L"  [-] unable to get WOW64 thread context (HANDLE = 0x%p), status = 0x%x\n", ThreadHandle, status);
+        bblog::error("unable to get WOW64 thread context (HANDLE = 0x{:x}), status = 0x{:x}", (uintptr_t)ThreadHandle, status);
         return false;
     }
 
-    ////wprintf(L"  [+] thread WOW64 context get\n");
+    bblog::debug("thread WOW64 context got");
     return true;
 }
 
@@ -583,11 +584,11 @@ bool ThreadSetContext(HANDLE ThreadHandle, CONTEXT* ctx) {
     NTSTATUS status = ntdll.NtSetContextThread(ThreadHandle, ctx);
 
     if (!NT_SUCCESS(status)) {
-        wprintf(L"  [-] unable to set thread context (HANDLE = 0x%p), status = 0x%x\n", ThreadHandle, status);
+        bblog::error("unable to set thread context (HANDLE = 0x{:x}), status = 0x{:x}", (uintptr_t)ThreadHandle, status);
         return false;
     }
 
-    //wprintf(L"  [+] thread context set, HANDLE = 0x%p\n", ThreadHandle);
+    bblog::debug("thread context set, HANDLE = 0x{:x}", (uintptr_t)ThreadHandle);
     return true;
 }
 
@@ -596,11 +597,11 @@ bool ThreadSetWow64Context(HANDLE ThreadHandle, WOW64_CONTEXT* ctx) {
     NTSTATUS status = ntdll.NtSetInformationThread(ThreadHandle, ThreadWow64Context, ctx, sizeof(WOW64_CONTEXT));
 
     if (!NT_SUCCESS(status)) {
-        wprintf(L"  [-] unable to set WOW64 thread context (HANDLE = 0x%p), status = 0x%x\n", ThreadHandle, status);
+        bblog::error("unable to set WOW64 thread context (HANDLE = 0x{:x}), status = 0x{:x}", (uintptr_t)ThreadHandle, status);
         return false;
     }
 
-    //wprintf(L"  [+] thread WOW64 context set, HANDLE = 0x%p\n", ThreadHandle);
+    bblog::debug("thread WOW64 context set, HANDLE = 0x{:x}", (uintptr_t)ThreadHandle);
     return true;
 }
 
@@ -611,7 +612,7 @@ bool ThreadCreateStack(HANDLE ProcessHandle, PINITIAL_TEB InitialTeb) {
     auto status = ntdll.NtQuerySystemInformation(SystemBasicInformation, &SysInfo, sizeof(SysInfo), NULL);
 
     if (!NT_SUCCESS(status)) {
-        wprintf(L"  [-] unable to get system basic information, status = 0x%x\n", status);
+        bblog::error("unable to get system basic information, status = 0x{:x}", status);
         return false;
     }
 
@@ -696,11 +697,11 @@ HANDLE SectionCreate(size_t Size) {
     }
 
     if (!NT_SUCCESS(status)) {
-        wprintf(L"  [-] unable to create section, status = 0x%x\n", status);
+        bblog::error("unable to create section, status = 0x{:x}", status);
         return NULL;
     }
 
-    //wprintf(L"  [+] section created, HANDLE = 0x%p\n", SectionHandle);
+    bblog::debug("section created, HANDLE = 0x{:x}", (uintptr_t)SectionHandle);
     return SectionHandle;
 }
 
@@ -720,11 +721,11 @@ HANDLE SectionFileCreate(HANDLE FileHandle, ACCESS_MASK DesiredAccess, ULONG Pro
     }
 
     if (!NT_SUCCESS(status)) {
-        wprintf(L"  [-] unable to create file section, status = 0x%x\n", status);
+        bblog::error("unable to create file section, status = 0x{:x}", status);
         return NULL;
     }
 
-    //wprintf(L"  [+] file section created, HANDLE = 0x%p\n", SectionHandle);
+    bblog::debug("file section created, HANDLE = 0x{:x}", (uintptr_t)SectionHandle);
     return SectionHandle;
 }
 
@@ -740,11 +741,11 @@ PVOID SectionMapView(HANDLE SectionHandle, SIZE_T Size, ULONG Protect, HANDLE Pr
     }
 
     if (!NT_SUCCESS(status)) {
-        wprintf(L"  [-] unable to map section, status = 0x%x\n", status);
+        bblog::error("unable to map section, status = 0x{:x}", status);
         return nullptr;
     }
 
-    //wprintf(L"  [+] section mapped, address = 0x%p\n", BaseAddress);
+    bblog::debug("section mapped, address = 0x{:x}", (uintptr_t)BaseAddress);
     return BaseAddress;
 }
 
@@ -760,11 +761,11 @@ bool SectionUnmapView(PVOID BaseAddress, HANDLE ProcessHandle) {
     }
 
     if (!NT_SUCCESS(status)) {
-        wprintf(L"  [-] unable to unmap section, status = 0x%x\n", status);
+        bblog::error("unable to unmap section, status = 0x{:x}", status);
         return false;
     }
 
-    //wprintf(L"  [+] section unmapped\n");
+    bblog::debug("section unmapped");
     return true;
 }
 
@@ -773,10 +774,10 @@ void HandleClose(HANDLE Handle) {
     NTSTATUS status = ntdll.NtClose(Handle);
 
     if (!NT_SUCCESS(status)) {
-        wprintf(L"  [-] unable to close handle (0x%p), status = 0x%x\n", Handle, status);
+        bblog::error("unable to close handle (0x{:x}), status = 0x{:x}", (uintptr_t)Handle, status);
     }
 
-    //wprintf(L"  [+] handle closed\n");
+    bblog::debug("handle closed");
 }
 
 HANDLE HandleDuplicate(HANDLE TargetProcessHandle, HANDLE SourceHandle, HANDLE SourceProcessHandle) {
@@ -786,11 +787,11 @@ HANDLE HandleDuplicate(HANDLE TargetProcessHandle, HANDLE SourceHandle, HANDLE S
     NTSTATUS status = ntdll.NtDuplicateObject(SourceProcessHandle, SourceHandle, TargetProcessHandle, &TargetHandle, 0, 0, DUPLICATE_SAME_ACCESS);
 
     if (!NT_SUCCESS(status)) {
-        wprintf(L"  [-] unable to duplicate handle (0x%p), status = 0x%x\n", SourceHandle, status);
+        bblog::error("unable to duplicate handle (0x{:x}), status = 0x{:x}", (uintptr_t)SourceHandle, status);
         return NULL;
     }
 
-    //wprintf(L"  [+] handle duplicated, HANDLE = 0x%p\n", TargetHandle);
+    bblog::debug("handle duplicated, HANDLE = 0x{:x}", (uintptr_t)TargetHandle);
     return TargetHandle;
 }
 
@@ -806,7 +807,7 @@ PVOID VirtualMemoryAllocate(SIZE_T Size, ULONG Protect, HANDLE ProcessHandle, PV
     }
 
     if (!NT_SUCCESS(status)) {
-        wprintf(L"  [-] unable to allocate virtual memory (0x%zu bytes), status = 0x%x\n", Size, status);
+        bblog::error("unable to allocate virtual memory (0x{:x} bytes), status = 0x{:x}", Size, status);
         return nullptr;
     }
 
@@ -818,7 +819,7 @@ bool VirtualMemoryProtect(PVOID BaseAddress, SIZE_T Size, ULONG& Protect, HANDLE
     NTSTATUS status = ntdll.NtProtectVirtualMemory(ProcessHandle, &BaseAddress, &Size, Protect, &Protect);
 
     if (!NT_SUCCESS(status)) {
-        wprintf(L"  [-] unable to protect virtual memory (0x%zu bytes), status = 0x%x\n", Size, status);
+        bblog::error("unable to protect virtual memory (0x{:x} bytes), status = 0x{:x}", Size, status);
         return false;
     }
 
@@ -831,7 +832,7 @@ bool VirtualMemoryWrite(PVOID Data, SIZE_T Size, PVOID BaseAddress, HANDLE Proce
     NTSTATUS status = ntdll.NtWriteVirtualMemory(ProcessHandle, BaseAddress, Data, Size, &NumberOfBytesWritten);
 
     if (!NT_SUCCESS(status)) {
-        wprintf(L"  [-] unable to write virtual memory (0x%zu bytes), status = 0x%x\n", Size, status);
+        bblog::error("unable to write virtual memory (0x{:x} bytes), status = 0x{:x}", Size, status);
         return false;
     }
 
@@ -852,7 +853,7 @@ size_t VirtualMemoryRead(PVOID Data, SIZE_T Size, PVOID BaseAddress, HANDLE Proc
     }
 
     if (!NT_SUCCESS(status)) {
-        wprintf(L"  [-] unable to read virtual memory (0x%zu bytes), status = 0x%x\n", Size, status);
+        bblog::error("unable to read virtual memory (0x{:x} bytes), status = 0x{:x}", Size, status);
         return 0;
     }
 
@@ -874,7 +875,7 @@ HANDLE TransactionCreate(const wchar_t* path) {
     NTSTATUS status = ntdll.NtCreateTransaction(&hTransaction, TRANSACTION_ALL_ACCESS, &ObjectAttributes, NULL, NULL, 0, 0, 0, NULL, NULL);
 
     if (!NT_SUCCESS(status)) {
-        wprintf(L"  [-] unable to create transaction (%s), status = 0x%x\n", path, status);
+        bblog::error(L"unable to create transaction ({}), status = 0x{:x}", path, status);
         return NULL;
     }
 
@@ -886,7 +887,7 @@ bool TransactionRollback(HANDLE hTransaction) {
     NTSTATUS status = ntdll.NtRollbackTransaction(hTransaction, TRUE);
 
     if (!NT_SUCCESS(status)) {
-        wprintf(L"  [-] unable to rollback transaction (HANDLE = 0x%p), status = 0x%x\n", hTransaction, status);
+        bblog::error("unable to rollback transaction (HANDLE = 0x{:x}), status = 0x{:x}", (uintptr_t)hTransaction, status);
         return false;
     }
 
@@ -898,7 +899,7 @@ bool TransactionSet(HANDLE hTransaction) {
     auto res = ntdll.RtlSetCurrentTransaction(hTransaction);
 
     if (!res) {
-        wprintf(L"  [-] unable to set current transaction (HANDLE = 0x%p)\n", hTransaction);
+        bblog::error("unable to set current transaction (HANDLE = 0x{:x})", (uintptr_t)hTransaction);
         return false;
     }
 
@@ -909,10 +910,11 @@ bool ThreadQueueUserApc(HANDLE ThreadHandle, PPS_APC_ROUTINE ApcRoutine, PVOID A
 
     NTSTATUS status = ntdll.NtQueueApcThread(ThreadHandle, ApcRoutine, ApcArgument1, ApcArgument2, ApcArgument3);
     if (!NT_SUCCESS(status)) {
-        wprintf(L"  [-] unable to queue user APC (HANDLE = 0x%p), status = 0x%x\n", ThreadHandle, status);
+        bblog::error("unable to queue user APC (HANDLE = 0x{:x}), status = 0x{:x}", (uintptr_t)ThreadHandle, status);
         return false;
     }
 
+    bblog::debug("user APC queued, HANDLE = 0x{:x}", (uintptr_t)ThreadHandle);
     return true;
 }
 
@@ -925,7 +927,7 @@ HANDLE EventCreate() {
 
     NTSTATUS status = ntdll.NtCreateEvent(&hEvent, EVENT_ALL_ACCESS, &ObjectAttributes, NotificationEvent, FALSE);
     if (!NT_SUCCESS(status)) {
-        wprintf(L"  [-] unable to create event, status = 0x%x\n", status);
+        bblog::error("unable to create event, status = 0x{:x}", status);
         return NULL;
     }
 
@@ -950,7 +952,7 @@ HANDLE FileOpen(const wchar_t* path) {
                                          FILE_ATTRIBUTE_NORMAL, FILE_SHARE_READ, FILE_OPEN, FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT, NULL, 0);
 
     if (!NT_SUCCESS(status)) {
-        wprintf(L"  [-] unable to open file (%s), status = 0x%x\n", path, status);
+        bblog::error(L"unable to open file ({}), status = 0x{:x}", path, status);
         return NULL;
     }
 
@@ -978,7 +980,7 @@ HANDLE FileCreate(const wchar_t *path, ACCESS_MASK DesiredAccess, ULONG ShareAcc
                                          FILE_OVERWRITE_IF, FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT, NULL, 0);
 
     if (!NT_SUCCESS(status)) {
-        wprintf(L"  [-] unable to create file (%s), status = 0x%x\n", path, status);
+        bblog::error(L"unable to create file ({}), status = 0x{:x}", path, status);
         return NULL;
     }
 
@@ -992,7 +994,7 @@ bool FileWrite(HANDLE FileHandle, PVOID Data, SIZE_T Size) {
     NTSTATUS status = ntdll.NtWriteFile(FileHandle, NULL, NULL, NULL, &IoStatus, Data, (ULONG)Size, NULL, NULL);
 
     if (!NT_SUCCESS(status)) {
-        wprintf(L"  [-] unable to write file (HANDLE = 0x%p), status = 0x%x\n", FileHandle, status);
+        bblog::error("unable to write file (HANDLE = 0x{:x}), status = 0x{:x}", (uintptr_t)FileHandle, status);
         return false;
     }
 
@@ -1007,7 +1009,7 @@ size_t FileGetSize(HANDLE FileHandle) {
     NTSTATUS status = ntdll.NtQueryInformationFile(FileHandle, &IoStatus, &FileInformation, sizeof(FileInformation), FileStandardInformation);
 
     if (!NT_SUCCESS(status)) {
-        wprintf(L"  [-] unable to get basic file information (HANDLE = 0x%p), status = 0x%x\n", FileHandle, status);
+        bblog::error("unable to get basic file information (HANDLE = 0x{:x}), status = 0x{:x}", (uintptr_t)FileHandle, status);
         return 0;
     }
 
@@ -1019,12 +1021,12 @@ bool AdjustPrivilege(ULONG Privilege) {
     BOOLEAN WasEnabled = FALSE;
     NTSTATUS status = ntdll.RtlAdjustPrivilege(Privilege, TRUE, FALSE, &WasEnabled);
     if (!NT_SUCCESS(status)) {
-        wprintf(L"  [-] unable to adjust debug privilege, status = 0x%x\n", status);
+        bblog::error("unable to adjust debug privilege, status = 0x{:x}", status);
         return false;
     }
 
     if (!WasEnabled) {
-        wprintf(L"  [+] debug privilege adjusted\n");
+        bblog::info("debug privilege adjusted");
     }
 
     return true;
@@ -1047,9 +1049,9 @@ bool DumpLiveSystem(HANDLE FileHandle) {
     NTSTATUS status = ntdll.NtSystemDebugControl(SysDbgGetLiveKernelDump, &LiveDumpControl, offsetof(SYSDBG_LIVEDUMP_CONTROL, SelectiveControl), NULL, 0, NULL);
 
     if (!NT_SUCCESS(status)) {
-        wprintf(L"  [-] unable to get live system dump, status = 0x%x\n", status);
+        bblog::error("unable to get live system dump, status = 0x{:x}", status);
         if (status == STATUS_DEBUGGER_INACTIVE) {
-            wprintf(L"  [!] the system is probably virtualized\n");
+            bblog::warn("the system is probably virtualized");
         }
         return false;
     }

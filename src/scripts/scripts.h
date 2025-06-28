@@ -6,6 +6,7 @@
 #include "phnt.h"
 
 #include "sysapi.h"
+#include "logging.h"
 
 #include "kernel_dump.h"
 
@@ -86,7 +87,7 @@ bool thread_set_execute(HANDLE ThreadHandle, PVOID ExecAddress) {
 
     context->ContextFlags = CONTEXT_FULL;
 
-    wprintf(L"  [*] getting old thread context...\n");
+    bblog::info("getting old thread context...");
 
     bool res;
 
@@ -101,7 +102,7 @@ bool thread_set_execute(HANDLE ThreadHandle, PVOID ExecAddress) {
         return false;
     }
 
-    wprintf(L"  [*] setting thread context with address to execute at 0x%p...\n", ExecAddress);
+    bblog::info("setting thread context with address to execute at 0x{:x}...", (uintptr_t)ExecAddress);
 
     if constexpr (is_64) {
         if constexpr (is_new_thread) {

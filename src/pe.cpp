@@ -4,6 +4,7 @@
 #include "sysapi.h"
 #include "common.h"
 #include "pe.h"
+#include "logging.h"
 
 namespace pe {
 
@@ -40,7 +41,7 @@ PIMAGE_SECTION_HEADER find_module_section_header(const char* module_name, const 
         }
     }
 
-    wprintf(L"  [-] unable to find %hs section in %hs\n", section, module_name);
+    bblog::error("unable to find {} section in {}", section, module_name);
     return NULL;
 }
 
@@ -68,7 +69,7 @@ PVOID find_code_in_module(const char* module_name, const std::vector<uint8_t>& c
 
     auto *pGadget = std::search((uint8_t*)pTextSection, (uint8_t*)pTextSectionEnd, code.begin(), code.end());
     if (pGadget == pTextSectionEnd) {
-        wprintf(L"  [-] unable to find gadget in %hs\n", module_name);
+        bblog::error("unable to find gadget in {}", module_name);
         return NULL;
     }
 

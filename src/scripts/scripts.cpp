@@ -8,6 +8,7 @@
 #include "scripts.h"
 #include "fs.h"
 #include "pdb.h"
+#include "logging.h"
 
 #include "kernel_dump.h"
 
@@ -109,11 +110,11 @@ HANDLE process_open(RemoteProcessOpenMethod method, uint32_t pid, ACCESS_MASK Ac
 
         EnumWindows(EnumWindowsProc, (LPARAM)&opts);
         if (opts.hWnd == NULL) {
-            wprintf(L"  [-] unable to find any windows for the process");
+            bblog::error("unable to find any windows for the process");
             return NULL;
         }
 
-        wprintf(L"  [+] window found, HWND = 0x%p\n", opts.hWnd);
+        bblog::debug("window found, HWND = 0x{:x}", (uintptr_t)opts.hWnd);
         //return sysapi::ProcessOpenByHwnd(opts.hWnd, AccessMask); // TODO: research access restrictions
         return sysapi::ProcessOpenByHwnd(opts.hWnd, PROCESS_VM_OPERATION | PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_DUP_HANDLE);
     }
@@ -156,7 +157,7 @@ bool process_init_memory(RemoteProcessMemoryContext& ctx, RemoteProcessMemoryMet
         }
 
         if (ctx.kernel_dump_process.pid == 0) {
-            wprintf(L"  [-] unable to find process in system live dump, PID = %d\n", pid);
+            bblog::error("unable to find process in system live dump, PID = {}", pid);
             return false;
         }
 
@@ -177,7 +178,7 @@ bool process_create_memory(RemoteProcessMemoryContext& ctx) {
     switch (ctx.method) {
     case RemoteProcessMemoryMethod::AllocateInAddr:
 
-        wprintf(L"  [*] allocating memory (%lu bytes)...\n", ctx.Size);
+        bblog::info("allocating memory ({} bytes)...", ctx.Size);
 
         ctx.RemoteBaseAddress = sysapi::VirtualMemoryAllocate(ctx.Size, PAGE_EXECUTE_READWRITE, ctx.ProcessHandle, ctx.RemoteBaseAddress);
         if (ctx.RemoteBaseAddress == nullptr) {
@@ -189,14 +190,14 @@ bool process_create_memory(RemoteProcessMemoryContext& ctx) {
     case RemoteProcessMemoryMethod::CreateSectionMap:
     case RemoteProcessMemoryMethod::CreateSectionMapLocalMap:
 
-        wprintf(L"  [*] creating section (%lu bytes)...\n", ctx.Size);
+        bblog::info("creating section ({} bytes)...", ctx.Size);
 
         ctx.Section = sysapi::SectionCreate(ctx.Size);
         if (ctx.Section == NULL) {
             return false;
         }
 
-        wprintf(L"  [*] mapping section for process (HANDLE = 0x%p)...\n", ctx.ProcessHandle);
+        bblog::info("mapping section for process (HANDLE = 0x{:x})...", (uintptr_t)ctx.ProcessHandle);
 
         ctx.RemoteBaseAddress = sysapi::SectionMapView(ctx.Section, ctx.Size, PAGE_EXECUTE_READWRITE, ctx.ProcessHandle, ctx.RemoteBaseAddress);
         if (ctx.RemoteBaseAddress == nullptr) {
@@ -205,7 +206,7 @@ bool process_create_memory(RemoteProcessMemoryContext& ctx) {
 
         if (ctx.method == RemoteProcessMemoryMethod::CreateSectionMapLocalMap) {
 
-            wprintf(L"  [*] mapping section for current process...\n");
+            bblog::info("mapping section for current process...");
 
             ctx.LocalBaseAddress = sysapi::SectionMapView(ctx.Section, ctx.Size, PAGE_READWRITE);
             if (ctx.LocalBaseAddress == nullptr) {
@@ -216,7 +217,7 @@ bool process_create_memory(RemoteProcessMemoryContext& ctx) {
         return true;
 
     case RemoteProcessMemoryMethod::LiveDumpParse:
-        wprintf(L"  [-] live system dump is RO method\n");
+        bblog::error("live system dump is RO method");
         assert(false);
         return false;
 
@@ -251,7 +252,7 @@ bool process_write_memory(const RemoteProcessMemoryContext& ctx, size_t offset, 
     assert(Size != 0);
 
     if (ctx.method == RemoteProcessMemoryMethod::LiveDumpParse) {
-        wprintf(L"  [-] live system dump is RO method\n");
+        bblog::error("live system dump is RO method");
         assert(false);
         return false;
     }
@@ -312,7 +313,7 @@ bool process_pe_image_relocate(const RemoteProcessMemoryContext& ctx, PVOID Imag
         offsetof(IMAGE_NT_HEADERS64, OptionalHeader.ImageBase) :
         offsetof(IMAGE_NT_HEADERS32, OptionalHeader.ImageBase));
 
-    wprintf(L"  [*] writing new image base at 0x%p...\n", ctx.RemoteBaseAddress);
+    bblog::info("writing new image base at 0x{:x}...", (uintptr_t)ctx.RemoteBaseAddress);
 
     bool res;
     if (is_64) {
@@ -330,11 +331,11 @@ bool process_pe_image_relocate(const RemoteProcessMemoryContext& ctx, PVOID Imag
 
     ptrdiff_t delta = PTR_DIFF(ctx.RemoteBaseAddress, is_64 ? pNT64Header->OptionalHeader.ImageBase : pNT32Header->OptionalHeader.ImageBase);
     if (delta == 0) {
-        wprintf(L"  [!] image base is already at the base address = 0x%p\n", ctx.RemoteBaseAddress);
+        bblog::info("image base is already at the base address = 0x{:x}", (uintptr_t)ctx.RemoteBaseAddress);
         return true;
     }
 
-    wprintf(L"  [*] rebasing relocation entries...\n");
+    bblog::info("rebasing relocation entries...");
 
     auto *pSection = (PIMAGE_SECTION_HEADER)PTR_ADD(ImageBuffer, pDOSHeader->e_lfanew + (is_64 ? sizeof(IMAGE_NT_HEADERS64) : sizeof(IMAGE_NT_HEADERS32)));
 
@@ -349,7 +350,7 @@ bool process_pe_image_relocate(const RemoteProcessMemoryContext& ctx, PVOID Imag
     }
 
     if (RelocAddr == 0) {
-        wprintf(L"  [-] unable to find \".reloc\" section...\n");
+        bblog::error("unable to find \".reloc\" section...");
         return false;
     }
 
@@ -447,7 +448,7 @@ bool process_write_params(HANDLE ProcessHandle, PRTL_USER_PROCESS_PARAMETERS Par
 
 unique_c_mem<PEB> process_read_peb(HANDLE ProcessHandle) {
 
-    wprintf(L"  [*] getting process PEB address...\n");
+    bblog::info("getting process PEB address...");
 
     PROCESS_BASIC_INFORMATION BasicInfo;
     auto res = sysapi::ProcessGetBasicInfo(ProcessHandle, BasicInfo);
@@ -460,7 +461,7 @@ unique_c_mem<PEB> process_read_peb(HANDLE ProcessHandle) {
         return {};
     }
 
-    wprintf(L"  [*] reading process PEB at 0x%p...\n", BasicInfo.PebBaseAddress);
+    bblog::info("reading process PEB at 0x{:x}...", (uintptr_t)BasicInfo.PebBaseAddress);
 
     size_t read = sysapi::VirtualMemoryRead(process_peb.data(), sizeof(PEB), BasicInfo.PebBaseAddress, ProcessHandle);
     if (read == 0) {
@@ -512,22 +513,23 @@ sysapi::unique_handle process_find_alertable_thread(HANDLE ProcessHandle) {
 
         NTSTATUS status = NtWaitForSingleObject(hLocalEvent.get(), FALSE, &Timeout);
         if (!NT_SUCCESS(status)) {
-            wprintf(L"  [-] unable to wait for event, status = 0x%x\n", status);
+            bblog::error("unable to wait for event, status = 0x{:x}", status);
             ThreadHandle = sysapi::ThreadOpenNext(ProcessHandle, ThreadHandle.get());
             continue;
         }
 
         if (status == STATUS_TIMEOUT) {
-            wprintf(L"  [!] probably not an alertable thread (HANDLE = 0x%p)\n", ThreadHandle.get());
+            bblog::debug("probably not an alertable thread (HANDLE = 0x{:x})", (uintptr_t)ThreadHandle.get());
             ThreadHandle = sysapi::ThreadOpenNext(ProcessHandle, ThreadHandle.get());
             continue;
         }
 
+        bblog::debug("alertable thread found, HANDLE = 0x{:x}", (uintptr_t)ThreadHandle.get());
         return ThreadHandle;
 
     } while (ThreadHandle != NULL);
 
-    wprintf(L"  [-] unable to find alertable thread, process (HANDLE = 0x%p)\n", ProcessHandle);
+    bblog::error("unable to find alertable thread, process (HANDLE = 0x{:x})", (uintptr_t)ProcessHandle);
     return NULL;
 }
 

