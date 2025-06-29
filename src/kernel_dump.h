@@ -40,7 +40,7 @@ struct vad_image_t {
 bool init_parser(const char *filepath, const wchar_t *pdb_path, kernel_dump_context_t& ctx);
 
 bool read_data(const kdmpparser::KernelDumpParser& dmp, uint64_t VirtualAddress, PVOID data, SIZE_T size, uint64_t dtb = 0);
-template <typename T>
+template<typename T>
 bool read_value(const kdmpparser::KernelDumpParser& dmp, uint64_t VirtualAddress, T& value, uint64_t dtb = 0) {
     return read_data(dmp, VirtualAddress, &value, sizeof(T), dtb);
 }
@@ -48,4 +48,4 @@ bool read_value(const kdmpparser::KernelDumpParser& dmp, uint64_t VirtualAddress
 std::vector<process_t> get_processes(const kernel_dump_context_t& ctx);
 std::vector<vad_image_t> get_process_image_maps(const kernel_dump_context_t& ctx, uint64_t va_vad_root);
 
-}
+} // namespace kernel_dump

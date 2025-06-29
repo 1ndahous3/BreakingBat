@@ -30,4 +30,4 @@ file_mapping_t map_file(const wchar_t *file_path) {
     return file_mapping;
 }
 
-}
+} // namespace fs

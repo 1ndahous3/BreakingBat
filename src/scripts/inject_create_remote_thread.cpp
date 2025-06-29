@@ -6,9 +6,7 @@
 
 namespace scripts {
 
-bool inject_create_remote_thread(uint32_t pid,
-                                 RemoteProcessOpenMethod open_method,
-                                 RemoteProcessMemoryMethod memory_method) {
+bool inject_create_remote_thread(uint32_t pid, RemoteProcessOpenMethod open_method, RemoteProcessMemoryMethod memory_method) {
 
     bblog::info("[*] Opening the target process");
     sysapi::unique_handle ProcessHandle = process_open(open_method, pid);
@@ -51,4 +49,4 @@ bool inject_create_remote_thread(uint32_t pid,
     return true;
 }
 
-}
+} // namespace scripts

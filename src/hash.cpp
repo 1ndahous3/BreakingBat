@@ -72,7 +72,8 @@ std::vector<unsigned char> decode(const std::string& str) {
 
     for (size_t in_ = 0, in_len = str.size(); in_len-- && (str[in_] != '=') && is_base64(str[in_]);) {
 
-        char_array_4[i++] = str[in_]; in_++;
+        char_array_4[i++] = str[in_];
+        in_++;
 
         if (i == 4) {
 
@@ -114,4 +115,4 @@ std::vector<unsigned char> decode(const std::string& str) {
     return ret;
 }
 
-}
+} // namespace hash::base64

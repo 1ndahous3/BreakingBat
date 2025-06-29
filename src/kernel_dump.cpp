@@ -10,8 +10,7 @@
 
 #include "kernel_dump.h"
 
-typedef enum _MI_VAD_TYPE
-{
+typedef enum _MI_VAD_TYPE {
     VadNone = 0,
     VadDevicePhysicalMemory = 1,
     VadImageMap = 2,
@@ -45,7 +44,8 @@ bool init_parser(const char *filepath, const wchar_t *pdb_path, kernel_dump_cont
         !pdb::get_field_offset(ctx.kernel_offsets.EPROCESS_IMAGE_FILE_NAME, pdb.data, "_EPROCESS", "ImageFileName") ||
         !pdb::get_field_offset(ctx.kernel_offsets.EPROCESS_VAD_ROOT, pdb.data, "_EPROCESS", "VadRoot") ||
         // _KPROCESS
-        !pdb::get_field_offset(ctx.kernel_offsets.KPROCESS_DTB, pdb.data, "_KPROCESS", "DirectoryTableBase")) {
+        !pdb::get_field_offset(ctx.kernel_offsets.KPROCESS_DTB, pdb.data, "_KPROCESS", "DirectoryTableBase")
+    ) {
         return false;
     }
 
@@ -69,7 +69,7 @@ bool read_data(const kdmpparser::KernelDumpParser& dmp, uint64_t VirtualAddress,
             return false;
         }
 
-        const uint8_t* pte_base_data = dmp.GetPhysicalPage(*pte_base_paddr);
+        const uint8_t *pte_base_data = dmp.GetPhysicalPage(*pte_base_paddr);
         if (!pte_base_data) {
             bblog::error("unable to get page for PT base, paddr = 0x{:016x}", *pte_base_paddr);
             return false;
@@ -169,7 +169,7 @@ std::vector<vad_image_t> get_process_image_maps(const kernel_dump_context_t& ctx
 
         vad_images.push_back(mmvad);
 
-        for (auto child_offset: { ctx.kernel_offsets.MMVAD_LEFT_CHILD, ctx.kernel_offsets.MMVAD_RIGHT_CHILD }) {
+        for (auto child_offset : { ctx.kernel_offsets.MMVAD_LEFT_CHILD, ctx.kernel_offsets.MMVAD_RIGHT_CHILD }) {
 
             uint64_t va_vad_leaf;
             if (!read_value(ctx.parser, va_vad_current + child_offset, va_vad_leaf)) {
@@ -185,4 +185,4 @@ std::vector<vad_image_t> get_process_image_maps(const kernel_dump_context_t& ctx
     return vad_images;
 }
 
-}
+} // namespace kernel_dump

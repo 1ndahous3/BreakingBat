@@ -24,7 +24,7 @@ uintptr_t rva_to_offset(PVOID image, uintptr_t rva) {
     return 0;
 }
 
-PIMAGE_SECTION_HEADER find_module_section_header(const char* module_name, const char* section) {
+PIMAGE_SECTION_HEADER find_module_section_header(const char *module_name, const char *section) {
 
     HMODULE hModule = GetModuleHandleA(module_name);
     if (hModule == NULL) {
@@ -36,7 +36,7 @@ PIMAGE_SECTION_HEADER find_module_section_header(const char* module_name, const 
     auto *pSectionHeader = (PIMAGE_SECTION_HEADER)PTR_ADD(&pNtHeader->OptionalHeader, pNtHeader->FileHeader.SizeOfOptionalHeader);
 
     for (int i = 0; i < pNtHeader->FileHeader.NumberOfSections; i++) {
-        if (strcmp((char*)pSectionHeader[i].Name, section) == 0) {
+        if (strcmp((char *)pSectionHeader[i].Name, section) == 0) {
             return &pSectionHeader[i];
         }
     }
@@ -45,19 +45,19 @@ PIMAGE_SECTION_HEADER find_module_section_header(const char* module_name, const 
     return NULL;
 }
 
-std::string_view get_module_section(const char* module_name, const char* section_name) {
+std::string_view get_module_section(const char *module_name, const char *section_name) {
 
     PIMAGE_SECTION_HEADER text_section_header = find_module_section_header(module_name, section_name);
     if (text_section_header == NULL) {
         return {};
     }
 
-    auto* pTextSection = PTR_ADD(GetModuleHandleA(module_name), text_section_header->VirtualAddress);
+    auto *pTextSection = PTR_ADD(GetModuleHandleA(module_name), text_section_header->VirtualAddress);
 
-    return { (char*)pTextSection, text_section_header->SizeOfRawData };
+    return { (char *)pTextSection, text_section_header->SizeOfRawData };
 }
 
-PVOID find_code_in_module(const char* module_name, const std::vector<uint8_t>& code) {
+PVOID find_code_in_module(const char *module_name, const std::vector<uint8_t>& code) {
 
     PIMAGE_SECTION_HEADER text_section_header = find_module_section_header(module_name, ".text");
     if (text_section_header == NULL) {
@@ -67,7 +67,7 @@ PVOID find_code_in_module(const char* module_name, const std::vector<uint8_t>& c
     auto *pTextSection = PTR_ADD(GetModuleHandleA(module_name), text_section_header->VirtualAddress);
     auto *pTextSectionEnd = PTR_ADD(pTextSection, text_section_header->SizeOfRawData);
 
-    auto *pGadget = std::search((uint8_t*)pTextSection, (uint8_t*)pTextSectionEnd, code.begin(), code.end());
+    auto *pGadget = std::search((uint8_t *)pTextSection, (uint8_t *)pTextSectionEnd, code.begin(), code.end());
     if (pGadget == pTextSectionEnd) {
         bblog::error("unable to find gadget in {}", module_name);
         return NULL;
@@ -76,4 +76,4 @@ PVOID find_code_in_module(const char* module_name, const std::vector<uint8_t>& c
     return pGadget;
 }
 
-}
+} // namespace pe

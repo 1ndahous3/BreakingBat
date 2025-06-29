@@ -14,8 +14,8 @@ class unique_ptr {
 public:
     unique_ptr() = default;
 
-    unique_ptr(Type* ptr) : m_ptr(ptr) {}
-    unique_ptr& operator=(Type* ptr) {
+    unique_ptr(Type *ptr) : m_ptr(ptr) {}
+    unique_ptr& operator=(Type *ptr) {
 
         if (m_ptr) {
             Free(m_ptr);
@@ -110,7 +110,7 @@ public:
     unique_resource() = default;
 
     unique_resource(Type res) : m_res(res) {}
-    unique_resource& operator=(Type* res) {
+    unique_resource& operator=(Type *res) {
 
         if (m_res) {
             Destroy(m_res);

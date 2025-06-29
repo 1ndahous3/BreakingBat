@@ -51,8 +51,7 @@ const char *decode(RemoteProcessOpenMethod method);
 
 HANDLE process_open(RemoteProcessOpenMethod method, uint32_t pid, ACCESS_MASK AccessMask = PROCESS_ALL_ACCESS);
 
-bool process_init_memory(RemoteProcessMemoryContext& ctx, RemoteProcessMemoryMethod method,
-                         HANDLE ProcessHandle, uint32_t pid);
+bool process_init_memory(RemoteProcessMemoryContext& ctx, RemoteProcessMemoryMethod method, HANDLE ProcessHandle, uint32_t pid);
 bool process_create_memory(RemoteProcessMemoryContext& ctx);
 bool process_read_memory(const RemoteProcessMemoryContext& ctx, size_t offset, PVOID Data, SIZE_T Size);
 bool process_write_memory(const RemoteProcessMemoryContext& ctx, size_t offset, PVOID Data, SIZE_T Size);
@@ -71,7 +70,7 @@ sysapi::unique_handle process_find_alertable_thread(HANDLE ProcessHandle);
 
 //
 
-template <bool is_new_thread, bool is_64>
+template<bool is_new_thread, bool is_64>
 // in case of new thread we need to change AddressOfEntryPoint which is RCX/EAX
 // in case of active thread we need to change RIP/EIP
 bool thread_set_execute(HANDLE ThreadHandle, PVOID ExecAddress) {
@@ -138,27 +137,13 @@ bool system_init_live_dump(kernel_dump::kernel_dump_context_t& ctx);
 
 //
 
-bool inject_hijack_remote_thread(uint32_t pid,
-                                 RemoteProcessOpenMethod open_method,
-                                 RemoteProcessMemoryMethod memory_method);
-bool inject_create_remote_thread(uint32_t pid,
-                                 RemoteProcessOpenMethod open_method,
-                                 RemoteProcessMemoryMethod memory_method);
-bool inject_create_process_hollow(const std::wstring& original_image,
-                                  const std::wstring& injected_image,
-                                  RemoteProcessMemoryMethod method);
-bool inject_create_process_doppel(const std::wstring& original_image,
-                                  const std::wstring& injected_image,
-                                  RemoteProcessMemoryMethod method);
-bool inject_queue_apc(uint32_t pid,
-                      uint32_t tid,
-                      RemoteProcessOpenMethod open_method,
-                      RemoteProcessMemoryMethod memory_method);
-bool inject_queue_apc_early_bird(const std::wstring& original_image,
-                                 RemoteProcessMemoryMethod memory_method);
-bool inject_com_irundown_docallback(uint32_t pid,
-                                    RemoteProcessOpenMethod open_method,
-                                    RemoteProcessMemoryMethod memory_method);
+bool inject_hijack_remote_thread(uint32_t pid, RemoteProcessOpenMethod open_method, RemoteProcessMemoryMethod memory_method);
+bool inject_create_remote_thread(uint32_t pid, RemoteProcessOpenMethod open_method, RemoteProcessMemoryMethod memory_method);
+bool inject_create_process_hollow(const std::wstring& original_image, const std::wstring& injected_image, RemoteProcessMemoryMethod method);
+bool inject_create_process_doppel(const std::wstring& original_image, const std::wstring& injected_image, RemoteProcessMemoryMethod method);
+bool inject_queue_apc(uint32_t pid, uint32_t tid, RemoteProcessOpenMethod open_method, RemoteProcessMemoryMethod memory_method);
+bool inject_queue_apc_early_bird(const std::wstring& original_image, RemoteProcessMemoryMethod memory_method);
+bool inject_com_irundown_docallback(uint32_t pid, RemoteProcessOpenMethod open_method, RemoteProcessMemoryMethod memory_method);
 void execute_rop_gadget_local();
 
-}
+} // namespace scripts

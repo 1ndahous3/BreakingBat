@@ -14,4 +14,4 @@ struct file_mapping_t {
 
 file_mapping_t map_file(const wchar_t *file_path);
 
-}
+} // namespace fs

@@ -15,9 +15,7 @@
 
 namespace scripts {
 
-bool inject_create_process_doppel(const std::wstring& original_image,
-                                  const std::wstring& injected_image,
-                                  RemoteProcessMemoryMethod method) {
+bool inject_create_process_doppel(const std::wstring& original_image, const std::wstring& injected_image, RemoteProcessMemoryMethod method) {
 
     bblog::info("[*] Preparing the injected image");
     bblog::info("opening image...");
@@ -42,7 +40,7 @@ bool inject_create_process_doppel(const std::wstring& original_image,
     }
 
     // TODO: RAII
-    auto* ImageFileBuffer = sysapi::SectionMapView(ImageFileSection, FileSize, PAGE_READONLY);
+    auto *ImageFileBuffer = sysapi::SectionMapView(ImageFileSection, FileSize, PAGE_READONLY);
     if (ImageFileBuffer == NULL) {
         return false;
     }
@@ -149,9 +147,9 @@ bool inject_create_process_doppel(const std::wstring& original_image,
         return false;
     }
 
-    auto* pDOSHeader = (PIMAGE_DOS_HEADER)ImageFileBuffer;
-    auto* pNT32Header = (PIMAGE_NT_HEADERS32)PTR_ADD(ImageFileBuffer, pDOSHeader->e_lfanew);
-    auto* pNT64Header = (PIMAGE_NT_HEADERS64)pNT32Header;
+    auto *pDOSHeader = (PIMAGE_DOS_HEADER)ImageFileBuffer;
+    auto *pNT32Header = (PIMAGE_NT_HEADERS32)PTR_ADD(ImageFileBuffer, pDOSHeader->e_lfanew);
+    auto *pNT64Header = (PIMAGE_NT_HEADERS64)pNT32Header;
 
     // TODO: we need to notify CSRSS about the new process to perform extra routines
     // such as creating ActivationContext, otherwise some DLLs will not load properly
@@ -174,4 +172,4 @@ bool inject_create_process_doppel(const std::wstring& original_image,
     return true;
 }
 
-}
+} // namespace scripts

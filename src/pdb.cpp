@@ -124,8 +124,7 @@ bool get_symbol(PVOID pdb_data, const std::string& symbol_name, pfn_symbol_callb
 
             pdb_symbol_t symbol;
 
-            module_symbol_stream.ForEachSymbol([&](const PDB::CodeView::DBI::Record *record){
-
+            module_symbol_stream.ForEachSymbol([&](const PDB::CodeView::DBI::Record *record) {
                 const char *name = nullptr;
                 uint32_t rva = 0;
                 if (record->header.kind == PDB::CodeView::DBI::SymbolRecordKind::S_THUNK32) {
@@ -262,7 +261,7 @@ bool get_field_offset(size_t& offset, PVOID pdb_data, const std::string& class_n
 
     // some tricky indexing: store all records continuously
     // but to get the actual record data we need to shift left to the first index in the stream
-    std::vector<const PDB::CodeView::TPI::Record*> records;
+    std::vector<const PDB::CodeView::TPI::Record *> records;
     records.resize(tpi_stream.GetTypeRecordCount());
     {
         uint32_t typeIndex = 0;
@@ -335,10 +334,10 @@ bool get_field_offset(size_t& offset, PVOID pdb_data, const std::string& class_n
         case PDB::CodeView::TPI::TypeRecordKind::LF_VBCLASS:
         case PDB::CodeView::TPI::TypeRecordKind::LF_IVBCLASS: {
 
-            auto offset_address_point_kind = *(PDB::CodeView::TPI::TypeRecordKind*)(field_record->data.LF_IVBCLASS.vbpOffset);
+            auto offset_address_point_kind = *(PDB::CodeView::TPI::TypeRecordKind *)(field_record->data.LF_IVBCLASS.vbpOffset);
             uint8_t offset_address_point_size = get_leaf_size(offset_address_point_kind);
 
-            auto offset_vbtable_kind = *(PDB::CodeView::TPI::TypeRecordKind*)(field_record->data.LF_IVBCLASS.vbpOffset + offset_address_point_size);
+            auto offset_vbtable_kind = *(PDB::CodeView::TPI::TypeRecordKind *)(field_record->data.LF_IVBCLASS.vbpOffset + offset_address_point_size);
             uint8_t offset_vbtable_size = get_leaf_size(offset_vbtable_kind);
 
             i += sizeof(PDB::CodeView::TPI::FieldList::Data::LF_VBCLASS);
@@ -371,7 +370,7 @@ bool get_field_offset(size_t& offset, PVOID pdb_data, const std::string& class_n
     return false;
 }
 
-}
+} // namespace raw_pdb
 
 namespace pdb {
 
@@ -396,9 +395,8 @@ std::wstring download_pdb(std::wstring folder_path, PVOID image, bool is_file) {
     bool is_64 = pNT32Header->OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC;
 
     uintptr_t debug_directory_rva =
-        is_64 ?
-        pNT64Header->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_DEBUG].VirtualAddress :
-        pNT32Header->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_DEBUG].VirtualAddress;
+        is_64 ? pNT64Header->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_DEBUG].VirtualAddress :
+                pNT32Header->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_DEBUG].VirtualAddress;
 
     if (!debug_directory_rva) {
         bblog::error("unable to get PE debug directory VA");
@@ -406,9 +404,7 @@ std::wstring download_pdb(std::wstring folder_path, PVOID image, bool is_file) {
     }
 
     uintptr_t debug_directory_offset =
-        is_file ?
-        pe::rva_to_offset(image, debug_directory_rva) :
-        debug_directory_rva;
+        is_file ? pe::rva_to_offset(image, debug_directory_rva) : debug_directory_rva;
 
     if (!debug_directory_offset) {
         bblog::error("unable to get PE debug directory offset");
@@ -416,24 +412,25 @@ std::wstring download_pdb(std::wstring folder_path, PVOID image, bool is_file) {
     }
 
     for (auto *current_debug_dir = (IMAGE_DEBUG_DIRECTORY *)PTR_ADD(image, debug_directory_offset);
-        current_debug_dir->SizeOfData;
-        current_debug_dir++) {
+         current_debug_dir->SizeOfData;
+         current_debug_dir++) {
 
         if (current_debug_dir->Type != IMAGE_DEBUG_TYPE_CODEVIEW) {
             continue;
         }
 
-        auto *codeview_info = (CV_INFO_PDB70 *)PTR_ADD(image,
-            is_file ?
-            current_debug_dir->PointerToRawData :
-            current_debug_dir->AddressOfRawData
+        auto *codeview_info = (CV_INFO_PDB70 *)PTR_ADD(
+            image,
+            is_file ? current_debug_dir->PointerToRawData :
+                      current_debug_dir->AddressOfRawData
         );
 
         if (codeview_info->CvSignature != CV_SIGNATURE_RSDS) {
             continue;
         }
 
-        auto GUID = std::format(L"{:08X}{:04X}{:04X}{:02X}{:02X}{:02X}{:02X}{:02X}{:02X}{:02X}{:02X}",
+        auto GUID = std::format(
+            L"{:08X}{:04X}{:04X}{:02X}{:02X}{:02X}{:02X}{:02X}{:02X}{:02X}{:02X}",
             codeview_info->Signature.Data1,
             codeview_info->Signature.Data2,
             codeview_info->Signature.Data3,
@@ -447,7 +444,7 @@ std::wstring download_pdb(std::wstring folder_path, PVOID image, bool is_file) {
             codeview_info->Signature.Data4[7]
         );
 
-        auto pdb_filename = str::to_wstring((char*)codeview_info->PdbFileName);
+        auto pdb_filename = str::to_wstring((char *)codeview_info->PdbFileName);
         auto pdb_extention_path = std::format(L"{}/{}{}/{}", pdb_filename, GUID, codeview_info->Age, pdb_filename);
         auto pdb_filepath = std::format(L"{}{}", folder_path, pdb_filename);
 
@@ -474,8 +471,8 @@ bool get_symbol_rva(size_t& rva, PVOID pdb_data, const std::string& symbol_name)
 
     DWORD RVA = 0;
 
-    auto callback = +[](pdb_symbol_t *current_symbol, void* ctx) {
-        *(DWORD*)ctx = current_symbol->rva;
+    auto callback = +[](pdb_symbol_t *current_symbol, void *ctx) {
+        *(DWORD *)ctx = current_symbol->rva;
     };
 
     if (!raw_pdb::get_symbol(pdb_data, symbol_name, callback, &RVA)) {
@@ -498,4 +495,4 @@ bool get_field_offset(size_t& offset, PVOID pdb_data, const std::string& class_n
     return true;
 }
 
-}
+} // namespace pdb

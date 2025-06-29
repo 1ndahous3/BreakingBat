@@ -6,10 +6,7 @@
 
 namespace scripts {
 
-bool inject_queue_apc(uint32_t pid,
-                      uint32_t tid,
-                      RemoteProcessOpenMethod open_method,
-                      RemoteProcessMemoryMethod memory_method) {
+bool inject_queue_apc(uint32_t pid, uint32_t tid, RemoteProcessOpenMethod open_method, RemoteProcessMemoryMethod memory_method) {
 
     bblog::info("[*] Opening the target process");
     sysapi::unique_handle ProcessHandle = process_open(open_method, pid);
@@ -73,4 +70,4 @@ bool inject_queue_apc(uint32_t pid,
     return true;
 }
 
-}
+} // namespace scripts

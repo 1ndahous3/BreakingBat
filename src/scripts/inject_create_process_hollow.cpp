@@ -11,9 +11,7 @@
 
 namespace scripts {
 
-bool inject_create_process_hollow(const std::wstring& original_image,
-                                  const std::wstring& injected_image,
-                                  RemoteProcessMemoryMethod method) {
+bool inject_create_process_hollow(const std::wstring& original_image, const std::wstring& injected_image, RemoteProcessMemoryMethod method) {
 
     bblog::info("[*] Preparing a new process");
 
@@ -90,7 +88,7 @@ bool inject_create_process_hollow(const std::wstring& original_image,
         return false;
     }
 
-    auto* pSections = (PIMAGE_SECTION_HEADER)PTR_ADD(image_mapping.data, pDOSHeader->e_lfanew + (is_64 ? sizeof(IMAGE_NT_HEADERS64) : sizeof(IMAGE_NT_HEADERS32)));
+    auto *pSections = (PIMAGE_SECTION_HEADER)PTR_ADD(image_mapping.data, pDOSHeader->e_lfanew + (is_64 ? sizeof(IMAGE_NT_HEADERS64) : sizeof(IMAGE_NT_HEADERS32)));
 
     for (ULONG i = 0; i < pNT32Header->FileHeader.NumberOfSections; i++) {
 
@@ -98,7 +96,7 @@ bool inject_create_process_hollow(const std::wstring& original_image,
             continue;
         }
 
-        bblog::info("writing {} section at 0x{:x}...", (char*)pSections[i].Name, (uintptr_t)PTR_ADD(process_peb->ImageBaseAddress, pSections[i].VirtualAddress));
+        bblog::info("writing {} section at 0x{:x}...", (char *)pSections[i].Name, (uintptr_t)PTR_ADD(process_peb->ImageBaseAddress, pSections[i].VirtualAddress));
 
         res = process_write_memory(ctx, pSections[i].VirtualAddress, PTR_ADD(image_mapping.data, pSections[i].PointerToRawData), pSections[i].SizeOfRawData);
         if (!res) {
@@ -136,4 +134,4 @@ bool inject_create_process_hollow(const std::wstring& original_image,
     return true;
 }
 
-}
+} // namespace scripts

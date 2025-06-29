@@ -19,7 +19,9 @@
 _COM_SMARTPTR_TYPEDEF(IRundown, __uuidof(IRundown));
 
 
-const GUID GUID_NULL = { 0, 0, 0, { 0, 0, 0, 0, 0, 0, 0, 0 } };
+const GUID GUID_NULL = {
+    0, 0, 0, { 0, 0, 0, 0, 0, 0, 0, 0 }
+};
 
 struct tagPageEntry {
     tagPageEntry *pNext;
@@ -27,23 +29,23 @@ struct tagPageEntry {
 };
 
 struct CInternalPageAllocator {
-    SIZE_T             _cPages;
-    tagPageEntry     **_pPageListStart;
-    tagPageEntry     **_pPageListEnd;
-    UINT               _dwFlags;
-    tagPageEntry       _ListHead;
-    UINT               _cEntries;
-    SIZE_T             _cbPerEntry;
-    USHORT             _cEntriesPerPage;
-    void              *_pLock;
+    SIZE_T _cPages;
+    tagPageEntry **_pPageListStart;
+    tagPageEntry **_pPageListEnd;
+    UINT _dwFlags;
+    tagPageEntry _ListHead;
+    UINT _cEntries;
+    SIZE_T _cbPerEntry;
+    USHORT _cEntriesPerPage;
+    void *_pLock;
 };
 
 // CPageAllocator CIPIDTable::_palloc structure in COM DLL
 struct CPageAllocator {
     CInternalPageAllocator _pgalloc;
-    PVOID                  _hHeap;
-    SIZE_T                 _cbPerEntry;
-    INT                    _lNumEntries;
+    PVOID _hHeap;
+    SIZE_T _cbPerEntry;
+    INT _lNumEntries;
 };
 
 enum IPIDFlags {
@@ -65,21 +67,21 @@ enum IPIDFlags {
 };
 
 typedef struct tagIPIDEntry {
-    struct tagIPIDEntry* pNextIPID;      // next IPIDEntry for same object
-    DWORD                dwFlags;        // flags (see IPIDFLAGS)
-    ULONG                cStrongRefs;    // strong reference count
-    ULONG                cWeakRefs;      // weak reference count
-    ULONG                cPrivateRefs;   // private reference count
-    void*                pv;             // real interface pointer
-    IUnknown*            pStub;          // proxy or stub pointer
-    void*                pOXIDEntry;     // ptr to OXIDEntry in OXID Table
-    IPID                 ipid;           // interface pointer identifier
-    IID                  iid;            // interface iid
-    void*                pChnl;          // channel pointer
-    void*                pIRCEntry;      // reference cache line
-    HSTRING*             pInterfaceName;
-    struct tagIPIDEntry* pOIDFLink;      // In use OID list
-    struct tagIPIDEntry* pOIDBLink;
+    struct tagIPIDEntry *pNextIPID; // next IPIDEntry for same object
+    DWORD dwFlags;                  // flags (see IPIDFLAGS)
+    ULONG cStrongRefs;              // strong reference count
+    ULONG cWeakRefs;                // weak reference count
+    ULONG cPrivateRefs;             // private reference count
+    void *pv;                       // real interface pointer
+    IUnknown *pStub;                // proxy or stub pointer
+    void *pOXIDEntry;               // ptr to OXIDEntry in OXID Table
+    IPID ipid;                      // interface pointer identifier
+    IID iid;                        // interface iid
+    void *pChnl;                    // channel pointer
+    void *pIRCEntry;                // reference cache line
+    HSTRING *pInterfaceName;
+    struct tagIPIDEntry *pOIDFLink; // In use OID list
+    struct tagIPIDEntry *pOIDBLink;
 } IPIDEntry;
 
 // IPID in IDL has GUID typedef
@@ -92,22 +94,22 @@ struct IPID_VALUES {
 };
 
 typedef struct tagSOleTlsData {
-    /* 0x0000 */ void* pvThreadBase;
-    /* 0x0008 */ void* pSmAllocator;
-    /* 0x0010 */ ULONG  dwApartmentID;
-    /* 0x0014 */ ULONG  dwFlags;
-    /* 0x0018 */ LONG   TlsMapIndex;
-    /* 0x0020 */ void** ppTlsSlot;
-    /* 0x0028 */ ULONG  cComInits;
-    /* 0x002c */ ULONG  cOleInits;
-    /* 0x0030 */ ULONG  cCalls;
-    /* 0x0038 */ void* pServerCall;
-    /* 0x0040 */ void* pCallObjectCache;
-    /* 0x0048 */ void* pContextStack;
-    /* 0x0050 */ void* pObjServer;
-    /* 0x0058 */ ULONG  dwTIDCaller;
-    /* 0x0060 */ void* pCurrentCtxForNefariousReaders;
-    /* 0x0068 */ void* pCurrentContext;
+    /* 0x0000 */ void *pvThreadBase;
+    /* 0x0008 */ void *pSmAllocator;
+    /* 0x0010 */ ULONG dwApartmentID;
+    /* 0x0014 */ ULONG dwFlags;
+    /* 0x0018 */ LONG TlsMapIndex;
+    /* 0x0020 */ void **ppTlsSlot;
+    /* 0x0028 */ ULONG cComInits;
+    /* 0x002c */ ULONG cOleInits;
+    /* 0x0030 */ ULONG cCalls;
+    /* 0x0038 */ void *pServerCall;
+    /* 0x0040 */ void *pCallObjectCache;
+    /* 0x0048 */ void *pContextStack;
+    /* 0x0050 */ void *pObjServer;
+    /* 0x0058 */ ULONG dwTIDCaller;
+    /* 0x0060 */ void *pCurrentCtxForNefariousReaders;
+    /* 0x0068 */ void *pCurrentContext;
 } SOleTlsData;
 
 
@@ -152,11 +154,11 @@ ConnectToIRundown(OID oid, OXID oxid, IPID ipid) {
     objRef.u_objref.u_standard.saResAddr.wNumEntries = 0;
     objRef.u_objref.u_standard.saResAddr.wSecurityOffset = 0;
 
-    auto objreg_base64 = str::to_wstring(hash::base64::encode(&objRef, sizeof(objRef)));\
+    auto objreg_base64 = str::to_wstring(hash::base64::encode(&objRef, sizeof(objRef)));
     auto name = std::format(L"OBJREF:{}:", objreg_base64);
 
     IRundownPtr irundown;
-    HRESULT hr = CoGetObject(name.c_str(), NULL, IID_IRundown, (void**)&irundown);
+    HRESULT hr = CoGetObject(name.c_str(), NULL, IID_IRundown, (void **)&irundown);
 
     if (FAILED(hr)) {
         bblog::error("unable to create IRundown object, HRESULT = 0x{:x}", hr);
@@ -170,9 +172,7 @@ ConnectToIRundown(OID oid, OXID oxid, IPID ipid) {
 // but we need to implement some additional code to get the VA of the loaded COM DLL in a WoW64 process
 // also we need to split some structures into 32/64 variants or replace them with dynamic information from the PDB
 
-bool inject_com_irundown_docallback(uint32_t pid,
-                                    RemoteProcessOpenMethod open_method,
-                                    RemoteProcessMemoryMethod memory_method) {
+bool inject_com_irundown_docallback(uint32_t pid, RemoteProcessOpenMethod open_method, RemoteProcessMemoryMethod memory_method) {
 
     bblog::info("[*] Opening the target process");
 
@@ -291,10 +291,13 @@ bool inject_com_irundown_docallback(uint32_t pid,
 
         for (size_t j = 0; j < ipid_cnt; j++) {
 
-            if (!IPIDEntries[j].pOXIDEntry || !IPIDEntries[j].dwFlags) continue;
-            if (IPIDEntries[j].dwFlags & (IPIDF_DISCONNECTED | IPIDF_DEACTIVATED)) continue;
+            if (!IPIDEntries[j].pOXIDEntry || !IPIDEntries[j].dwFlags)
+                continue;
+            if (IPIDEntries[j].dwFlags & (IPIDF_DISCONNECTED | IPIDF_DEACTIVATED))
+                continue;
 
-            if (IPIDEntries[j].iid != IID_IRundown) continue;
+            if (IPIDEntries[j].iid != IID_IRundown)
+                continue;
 
             struct {
                 OXID oxid;
@@ -307,7 +310,8 @@ bool inject_com_irundown_docallback(uint32_t pid,
                 continue;
             }
 
-            if (!oxid_oid.oxid || !oxid_oid.oid) continue;
+            if (!oxid_oid.oxid || !oxid_oid.oid)
+                continue;
 
             ipid_entry_t ipid_entry;
             ipid_entry.iid = IPIDEntries[j].iid;
@@ -315,10 +319,7 @@ bool inject_com_irundown_docallback(uint32_t pid,
             ipid_entry.oxid = oxid_oid.oxid;
             ipid_entry.oid = oxid_oid.oid;
 
-            bblog::info("valid entry found, OXID = 0x{:016x}, IPID = {}",
-                    ipid_entry.oxid,
-                    str::to_string(ipid_entry.ipid).c_str()
-            );
+            bblog::info("valid entry found, OXID = 0x{:016x}, IPID = {}", ipid_entry.oxid, str::to_string(ipid_entry.ipid).c_str());
 
             ipid_entries.push_back(ipid_entry);
         }
@@ -332,14 +333,10 @@ bool inject_com_irundown_docallback(uint32_t pid,
 
     for (const auto& ipid_entry : ipid_entries) {
 
-        uint32_t tid = ((IPID_VALUES*)&ipid_entry.ipid)->tid;
+        uint32_t tid = ((IPID_VALUES *)&ipid_entry.ipid)->tid;
         bool valid_tid = tid && tid != UINT16_MAX;
 
-        bblog::info("binding to OXID = 0x{:016x}, IPID = {} with {} COM context...",
-            ipid_entry.oxid,
-            str::to_string(ipid_entry.ipid).c_str(),
-            valid_tid ? "thread" : "global"
-        );
+        bblog::info("binding to OXID = 0x{:016x}, IPID = {} with {} COM context...", ipid_entry.oxid, str::to_string(ipid_entry.ipid).c_str(), valid_tid ? "thread" : "global");
 
         auto irundown = ConnectToIRundown(ipid_entry.oid, ipid_entry.oxid, ipid_entry.ipid);
         if (!irundown) {
@@ -441,4 +438,4 @@ bool inject_com_irundown_docallback(uint32_t pid,
     return false;
 }
 
-}
+} // namespace scripts

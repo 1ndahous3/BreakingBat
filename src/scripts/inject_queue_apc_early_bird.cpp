@@ -6,8 +6,7 @@
 
 namespace scripts {
 
-bool inject_queue_apc_early_bird(const std::wstring& original_image,
-                                 RemoteProcessMemoryMethod memory_method) {
+bool inject_queue_apc_early_bird(const std::wstring& original_image, RemoteProcessMemoryMethod memory_method) {
 
     bblog::info("[*] Preparing a new process");
 
@@ -64,4 +63,4 @@ bool inject_queue_apc_early_bird(const std::wstring& original_image,
     return true;
 }
 
-}
+} // namespace scripts

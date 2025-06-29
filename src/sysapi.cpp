@@ -22,60 +22,59 @@ NtUserGetWindowProcessHandle(
     _In_ HWND hWnd,
     _In_ ACCESS_MASK DesiredAccess
 );
-
 }
 
 struct ntdll_api_t {
 
     HMODULE NtDllModule = NULL;
 
-    decltype(::NtQuerySystemInformation)* NtQuerySystemInformation = nullptr;
-    decltype(::NtAllocateVirtualMemory)* NtAllocateVirtualMemory = nullptr;
-    decltype(::NtReadVirtualMemory)* NtReadVirtualMemory = nullptr;
-    decltype(::NtWriteVirtualMemory)* NtWriteVirtualMemory = nullptr;
-    decltype(::NtProtectVirtualMemory)* NtProtectVirtualMemory = nullptr;
-    decltype(::NtCreateSection)* NtCreateSection = nullptr;
-    decltype(::NtMapViewOfSection)* NtMapViewOfSection = nullptr;
-    decltype(::NtUnmapViewOfSection)* NtUnmapViewOfSection = nullptr;
-    decltype(::NtClose)* NtClose = nullptr;
-    decltype(::NtDuplicateObject)* NtDuplicateObject = nullptr;
-    decltype(::NtOpenProcess)* NtOpenProcess = nullptr;
-    decltype(::NtQueryInformationProcess)* NtQueryInformationProcess = nullptr;
-    decltype(::NtSuspendThread)* NtSuspendThread = nullptr;
-    decltype(::NtResumeThread)* NtResumeThread = nullptr;
-    decltype(::NtGetContextThread)* NtGetContextThread = nullptr;
-    decltype(::NtSetContextThread)* NtSetContextThread = nullptr;
-    decltype(::NtQueryInformationThread)* NtQueryInformationThread = nullptr;
-    decltype(::NtSetInformationThread)* NtSetInformationThread = nullptr;
-    decltype(::NtCreateUserProcess)* NtCreateUserProcess = nullptr;
-    decltype(::NtCreateProcessEx)* NtCreateProcessEx = nullptr;
-    decltype(::NtCreateThreadEx)* NtCreateThreadEx = nullptr;
-    decltype(::NtOpenThread)* NtOpenThread = nullptr;
-    decltype(::NtGetNextThread)* NtGetNextThread = nullptr;
-    decltype(::NtCreateFile)* NtCreateFile = nullptr;
-    decltype(::NtWriteFile)* NtWriteFile = nullptr;
-    decltype(::NtCreateTransaction)* NtCreateTransaction = nullptr;
-    decltype(::NtRollbackTransaction)* NtRollbackTransaction = nullptr;
-    decltype(::NtQueryInformationFile)* NtQueryInformationFile = nullptr;
-    decltype(::NtQueueApcThread)* NtQueueApcThread = nullptr;
-    decltype(::NtQueueApcThreadEx)* NtQueueApcThreadEx = nullptr;
-    decltype(::NtCreateEvent)* NtCreateEvent = nullptr;
-    decltype(::NtSystemDebugControl)* NtSystemDebugControl = nullptr;
-    decltype(::RtlAdjustPrivilege)* RtlAdjustPrivilege = nullptr;
-    decltype(::RtlCreateProcessParametersEx)* RtlCreateProcessParametersEx = nullptr;
-    decltype(::RtlDestroyProcessParameters)* RtlDestroyProcessParameters = nullptr;
-    decltype(::RtlInitializeContext)* RtlInitializeContext = nullptr;
-    decltype(::RtlCreateEnvironmentEx)* RtlCreateEnvironmentEx = nullptr;
-    decltype(::RtlDestroyEnvironment)* RtlDestroyEnvironment = nullptr;
-    decltype(::RtlSetCurrentTransaction)* RtlSetCurrentTransaction = nullptr;
+    decltype(::NtQuerySystemInformation) *NtQuerySystemInformation = nullptr;
+    decltype(::NtAllocateVirtualMemory) *NtAllocateVirtualMemory = nullptr;
+    decltype(::NtReadVirtualMemory) *NtReadVirtualMemory = nullptr;
+    decltype(::NtWriteVirtualMemory) *NtWriteVirtualMemory = nullptr;
+    decltype(::NtProtectVirtualMemory) *NtProtectVirtualMemory = nullptr;
+    decltype(::NtCreateSection) *NtCreateSection = nullptr;
+    decltype(::NtMapViewOfSection) *NtMapViewOfSection = nullptr;
+    decltype(::NtUnmapViewOfSection) *NtUnmapViewOfSection = nullptr;
+    decltype(::NtClose) *NtClose = nullptr;
+    decltype(::NtDuplicateObject) *NtDuplicateObject = nullptr;
+    decltype(::NtOpenProcess) *NtOpenProcess = nullptr;
+    decltype(::NtQueryInformationProcess) *NtQueryInformationProcess = nullptr;
+    decltype(::NtSuspendThread) *NtSuspendThread = nullptr;
+    decltype(::NtResumeThread) *NtResumeThread = nullptr;
+    decltype(::NtGetContextThread) *NtGetContextThread = nullptr;
+    decltype(::NtSetContextThread) *NtSetContextThread = nullptr;
+    decltype(::NtQueryInformationThread) *NtQueryInformationThread = nullptr;
+    decltype(::NtSetInformationThread) *NtSetInformationThread = nullptr;
+    decltype(::NtCreateUserProcess) *NtCreateUserProcess = nullptr;
+    decltype(::NtCreateProcessEx) *NtCreateProcessEx = nullptr;
+    decltype(::NtCreateThreadEx) *NtCreateThreadEx = nullptr;
+    decltype(::NtOpenThread) *NtOpenThread = nullptr;
+    decltype(::NtGetNextThread) *NtGetNextThread = nullptr;
+    decltype(::NtCreateFile) *NtCreateFile = nullptr;
+    decltype(::NtWriteFile) *NtWriteFile = nullptr;
+    decltype(::NtCreateTransaction) *NtCreateTransaction = nullptr;
+    decltype(::NtRollbackTransaction) *NtRollbackTransaction = nullptr;
+    decltype(::NtQueryInformationFile) *NtQueryInformationFile = nullptr;
+    decltype(::NtQueueApcThread) *NtQueueApcThread = nullptr;
+    decltype(::NtQueueApcThreadEx) *NtQueueApcThreadEx = nullptr;
+    decltype(::NtCreateEvent) *NtCreateEvent = nullptr;
+    decltype(::NtSystemDebugControl) *NtSystemDebugControl = nullptr;
+    decltype(::RtlAdjustPrivilege) *RtlAdjustPrivilege = nullptr;
+    decltype(::RtlCreateProcessParametersEx) *RtlCreateProcessParametersEx = nullptr;
+    decltype(::RtlDestroyProcessParameters) *RtlDestroyProcessParameters = nullptr;
+    decltype(::RtlInitializeContext) *RtlInitializeContext = nullptr;
+    decltype(::RtlCreateEnvironmentEx) *RtlCreateEnvironmentEx = nullptr;
+    decltype(::RtlDestroyEnvironment) *RtlDestroyEnvironment = nullptr;
+    decltype(::RtlSetCurrentTransaction) *RtlSetCurrentTransaction = nullptr;
     // alternative API
-    decltype(::NtCreateProcess)* NtCreateProcess = nullptr;
-    decltype(::NtCreateThread)* NtCreateThread = nullptr;
-    decltype(::NtCreateSectionEx)* NtCreateSectionEx = nullptr;
-    decltype(::NtMapViewOfSectionEx)* NtMapViewOfSectionEx = nullptr;
-    decltype(::NtUnmapViewOfSectionEx)* NtUnmapViewOfSectionEx = nullptr;
-    decltype(::NtAllocateVirtualMemoryEx)* NtAllocateVirtualMemoryEx = nullptr;
-    decltype(::NtReadVirtualMemoryEx)* NtReadVirtualMemoryEx = nullptr;
+    decltype(::NtCreateProcess) *NtCreateProcess = nullptr;
+    decltype(::NtCreateThread) *NtCreateThread = nullptr;
+    decltype(::NtCreateSectionEx) *NtCreateSectionEx = nullptr;
+    decltype(::NtMapViewOfSectionEx) *NtMapViewOfSectionEx = nullptr;
+    decltype(::NtUnmapViewOfSectionEx) *NtUnmapViewOfSectionEx = nullptr;
+    decltype(::NtAllocateVirtualMemoryEx) *NtAllocateVirtualMemoryEx = nullptr;
+    decltype(::NtReadVirtualMemoryEx) *NtReadVirtualMemoryEx = nullptr;
 };
 
 
@@ -83,7 +82,7 @@ struct win32u_api_t {
 
     HMODULE Win32uDllModule = NULL;
 
-    decltype(::NtUserGetWindowProcessHandle)* NtUserGetWindowProcessHandle = nullptr;
+    decltype(::NtUserGetWindowProcessHandle) *NtUserGetWindowProcessHandle = nullptr;
 };
 
 
@@ -92,12 +91,12 @@ namespace sysapi {
 ntdll_api_t ntdll;
 win32u_api_t win32u;
 
-void init(const options_t &sysapi_opts) {
+void init(const options_t& sysapi_opts) {
 
-#define NTDLL_RESOLVE(F) \
-    ntdll.F = (decltype(::F)*)GetProcAddress(ntdll.NtDllModule, #F);        \
-    if (ntdll.F == nullptr) {                                               \
-        bblog::warn("unable to get address of \"{}\" from ntdll.dll", #F);  \
+#define NTDLL_RESOLVE(F)                                                   \
+    ntdll.F = (decltype(::F) *)GetProcAddress(ntdll.NtDllModule, #F);      \
+    if (ntdll.F == nullptr) {                                              \
+        bblog::warn("unable to get address of \"{}\" from ntdll.dll", #F); \
     }
 
     ntdll.NtDllModule = GetModuleHandleW(L"ntdll.dll");
@@ -155,11 +154,11 @@ void init(const options_t &sysapi_opts) {
 
     if (sysapi_opts.ntdll_copy) {
 
-#define NTDLL_RESOLVE(F) \
-        ntdll.F = (decltype(::F)*)GetProcAddress(ntdll.NtDllModule, #F);                \
-        if (ntdll.F == nullptr) {                                                       \
-            bblog::info("unable to get address of \"{}\" from copy of ntdll.dll", #F);  \
-        }
+#define NTDLL_RESOLVE(F)                                                           \
+    ntdll.F = (decltype(::F) *)GetProcAddress(ntdll.NtDllModule, #F);              \
+    if (ntdll.F == nullptr) {                                                      \
+        bblog::info("unable to get address of \"{}\" from copy of ntdll.dll", #F); \
+    }
 
         // we had to initialize the original API first to use it in this function
         ntdll.NtDllModule = LoadLibraryCopyW(L"c:\\windows\\system32\\ntdll.dll");
@@ -197,10 +196,10 @@ void init(const options_t &sysapi_opts) {
         NTDLL_RESOLVE(NtCreateEvent);
         NTDLL_RESOLVE(NtSystemDebugControl);
         // these functions crash inside guard_dispatch_icall_nop() if called from copy of ntdll.dll
-        //NTDLL_RESOLVE(RtlAdjustPrivilege);
-        //NTDLL_RESOLVE(RtlCreateProcessParametersEx);
-        //NTDLL_RESOLVE(RtlDestroyProcessParameters);
-        //NTDLL_RESOLVE(RtlInitializeContext);
+        // NTDLL_RESOLVE(RtlAdjustPrivilege);
+        // NTDLL_RESOLVE(RtlCreateProcessParametersEx);
+        // NTDLL_RESOLVE(RtlDestroyProcessParameters);
+        // NTDLL_RESOLVE(RtlInitializeContext);
         NTDLL_RESOLVE(RtlCreateEnvironmentEx);
         NTDLL_RESOLVE(RtlDestroyEnvironment);
         NTDLL_RESOLVE(RtlSetCurrentTransaction);
@@ -217,10 +216,10 @@ void init(const options_t &sysapi_opts) {
 #undef NTDLL_RESOLVE
     }
 
-#define WIN32U_RESOLVE(F) \
-    win32u.F = (decltype(::F)*)GetProcAddress(win32u.Win32uDllModule, #F);   \
-    if (win32u.F == nullptr) {                                               \
-        bblog::warn("unable to get address of \"{}\" from win32u.dll", #F);  \
+#define WIN32U_RESOLVE(F)                                                   \
+    win32u.F = (decltype(::F) *)GetProcAddress(win32u.Win32uDllModule, #F); \
+    if (win32u.F == nullptr) {                                              \
+        bblog::warn("unable to get address of \"{}\" from win32u.dll", #F); \
     }
 
     win32u.Win32uDllModule = GetModuleHandleW(L"win32u.dll");
@@ -231,8 +230,7 @@ void init(const options_t &sysapi_opts) {
     wprintf(L"\n");
 }
 
-PPEB GetPeb()
-{
+PPEB GetPeb() {
 #if defined(_WIN64)
     return (PPEB)__readgsqword(0x60);
 #elif defined(_WIN32)
@@ -298,8 +296,12 @@ process_t ProcessCreateUser(const std::wstring& name, bool suspended) {
     AttributeList.Attributes[0].Value = (ULONG_PTR)NtImagePath.Buffer;
 
     process_t process;
-    status = ntdll.NtCreateUserProcess(process.hProcess.reset(), process.hThread.reset(), PROCESS_ALL_ACCESS, THREAD_ALL_ACCESS,
-                                       NULL, NULL, NULL, suspended ? THREAD_CREATE_FLAGS_CREATE_SUSPENDED : 0, ProcessParameters, &CreateInfo, &AttributeList);
+    status = ntdll.NtCreateUserProcess(
+        process.hProcess.reset(), process.hThread.reset(),
+        PROCESS_ALL_ACCESS, THREAD_ALL_ACCESS, NULL, NULL, NULL,
+        suspended ? THREAD_CREATE_FLAGS_CREATE_SUSPENDED : 0,
+        ProcessParameters, &CreateInfo, &AttributeList
+    );
 
     ntdll.RtlDestroyProcessParameters(ProcessParameters);
 
@@ -486,9 +488,9 @@ HANDLE ThreadCreate(HANDLE ProcessHandle, PVOID StartAddress) {
 
     if (ntdll.NtCreateThread) {
 
-        auto* Cid = (PCLIENT_ID)VirtualMemoryAllocate(sizeof(CLIENT_ID), PAGE_READWRITE);
-        auto* InitialTeb = (PINITIAL_TEB)VirtualMemoryAllocate(sizeof(INITIAL_TEB), PAGE_READWRITE);
-        auto* Context = (PCONTEXT)VirtualMemoryAllocate(sizeof(CONTEXT), PAGE_READWRITE);
+        auto *Cid = (PCLIENT_ID)VirtualMemoryAllocate(sizeof(CLIENT_ID), PAGE_READWRITE);
+        auto *InitialTeb = (PINITIAL_TEB)VirtualMemoryAllocate(sizeof(INITIAL_TEB), PAGE_READWRITE);
+        auto *Context = (PCONTEXT)VirtualMemoryAllocate(sizeof(CONTEXT), PAGE_READWRITE);
 
         bool res = ThreadCreateStack(ProcessHandle, InitialTeb);
         if (!res) {
@@ -553,7 +555,7 @@ bool ThreadGetBasicInfo(HANDLE ThreadHandle, THREAD_BASIC_INFORMATION& BasicInfo
     return true;
 }
 
-bool ThreadGetContext(HANDLE ThreadHandle, CONTEXT* ctx) {
+bool ThreadGetContext(HANDLE ThreadHandle, CONTEXT *ctx) {
 
     NTSTATUS status = ntdll.NtGetContextThread(ThreadHandle, ctx);
 
@@ -566,7 +568,7 @@ bool ThreadGetContext(HANDLE ThreadHandle, CONTEXT* ctx) {
     return true;
 }
 
-bool ThreadGetWow64Context(HANDLE ThreadHandle, WOW64_CONTEXT* ctx) {
+bool ThreadGetWow64Context(HANDLE ThreadHandle, WOW64_CONTEXT *ctx) {
 
     NTSTATUS status = ntdll.NtQueryInformationThread(ThreadHandle, ThreadWow64Context, ctx, sizeof(WOW64_CONTEXT), NULL);
 
@@ -579,7 +581,7 @@ bool ThreadGetWow64Context(HANDLE ThreadHandle, WOW64_CONTEXT* ctx) {
     return true;
 }
 
-bool ThreadSetContext(HANDLE ThreadHandle, CONTEXT* ctx) {
+bool ThreadSetContext(HANDLE ThreadHandle, CONTEXT *ctx) {
 
     NTSTATUS status = ntdll.NtSetContextThread(ThreadHandle, ctx);
 
@@ -592,7 +594,7 @@ bool ThreadSetContext(HANDLE ThreadHandle, CONTEXT* ctx) {
     return true;
 }
 
-bool ThreadSetWow64Context(HANDLE ThreadHandle, WOW64_CONTEXT* ctx) {
+bool ThreadSetWow64Context(HANDLE ThreadHandle, WOW64_CONTEXT *ctx) {
 
     NTSTATUS status = ntdll.NtSetInformationThread(ThreadHandle, ThreadWow64Context, ctx, sizeof(WOW64_CONTEXT));
 
@@ -668,7 +670,7 @@ bool ThreadCreateStack(HANDLE ProcessHandle, PINITIAL_TEB InitialTeb) {
 
     if (GuardPage) {
 
-        SIZE_T RegionSize =  SysInfo.PageSize;
+        SIZE_T RegionSize = SysInfo.PageSize;
         ULONG Protect = PAGE_READWRITE | PAGE_GUARD;
 
         bool res = VirtualMemoryProtect(Stack, RegionSize, Protect, ProcessHandle);
@@ -860,7 +862,7 @@ size_t VirtualMemoryRead(PVOID Data, SIZE_T Size, PVOID BaseAddress, HANDLE Proc
     return NumberOfBytesRead;
 }
 
-HANDLE TransactionCreate(const wchar_t* path) {
+HANDLE TransactionCreate(const wchar_t *path) {
 
     auto nt_path = L"\\??\\" + std::wstring(path);
 
@@ -934,7 +936,7 @@ HANDLE EventCreate() {
     return hEvent;
 }
 
-HANDLE FileOpen(const wchar_t* path) {
+HANDLE FileOpen(const wchar_t *path) {
 
     auto nt_path = L"\\??\\" + std::wstring(path);
 
@@ -948,8 +950,11 @@ HANDLE FileOpen(const wchar_t* path) {
 
     HANDLE hFile;
 
-    NTSTATUS status = ntdll.NtCreateFile(&hFile, FILE_GENERIC_READ, &ObjectAttributes, &IoStatus, NULL,
-                                         FILE_ATTRIBUTE_NORMAL, FILE_SHARE_READ, FILE_OPEN, FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT, NULL, 0);
+    NTSTATUS status = ntdll.NtCreateFile(
+        &hFile, FILE_GENERIC_READ, &ObjectAttributes, &IoStatus, NULL,
+        FILE_ATTRIBUTE_NORMAL, FILE_SHARE_READ, FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT, NULL, 0
+    );
 
     if (!NT_SUCCESS(status)) {
         bblog::error(L"unable to open file ({}), status = 0x{:x}", path, status);
@@ -975,9 +980,11 @@ HANDLE FileCreate(const wchar_t *path, ACCESS_MASK DesiredAccess, ULONG ShareAcc
 
     LARGE_INTEGER AllocationSize{ .QuadPart = (LONGLONG)Size };
 
-    NTSTATUS status = ntdll.NtCreateFile(&hFile, DesiredAccess, &ObjectAttributes, &IoStatus, &AllocationSize,
-                                         FILE_ATTRIBUTE_NORMAL, ShareAccess,
-                                         FILE_OVERWRITE_IF, FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT, NULL, 0);
+    NTSTATUS status = ntdll.NtCreateFile(
+        &hFile, DesiredAccess, &ObjectAttributes, &IoStatus, &AllocationSize,
+        FILE_ATTRIBUTE_NORMAL, ShareAccess, FILE_OVERWRITE_IF,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT, NULL, 0
+    );
 
     if (!NT_SUCCESS(status)) {
         bblog::error(L"unable to create file ({}), status = 0x{:x}", path, status);
@@ -1060,7 +1067,7 @@ bool DumpLiveSystem(HANDLE FileHandle) {
 }
 
 
-HMODULE LoadLibraryCopyW(const wchar_t* ModulePath) {
+HMODULE LoadLibraryCopyW(const wchar_t *ModulePath) {
 
     std::wstring TempModulePath = {
         GetPeb()->ProcessParameters->CurrentDirectory.DosPath.Buffer,
@@ -1101,4 +1108,4 @@ HMODULE LoadLibraryCopyW(const wchar_t* ModulePath) {
     return LoadLibraryW(TempModulePath.c_str());
 }
 
-}
+} // namespace sysapi

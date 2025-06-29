@@ -1,0 +1,12 @@
+repos:
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v4.2.0
+  hooks:
+  - id: mixed-line-ending
+    args: [--fix=lf]
+    files: ^src/
+- repo: https://github.com/pre-commit/mirrors-clang-format
+  rev: v20.1.7
+  hooks:
+  - id: clang-format
+    files: ^src/

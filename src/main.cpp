@@ -33,27 +33,27 @@ enum {
 };
 
 CSimpleOptW::SOption g_cli_opts[] = {
-    { OPT_HELP, L"-?",     SO_NONE },
-    { OPT_HELP, L"--help", SO_NONE },
+    { OPT_HELP,                           L"-?",                             SO_NONE    },
+    { OPT_HELP,                           L"--help",                         SO_NONE    },
     // optional options
-    { OPT_NTDLL_LOAD_COPY,        L"--ntdll-load-copy",       SO_NONE },
-    { OPT_NTDLL_ALTERNATIVE_API,  L"--ntdll-alternative-api", SO_NONE },
+    { OPT_NTDLL_LOAD_COPY,                L"--ntdll-load-copy",              SO_NONE    },
+    { OPT_NTDLL_ALTERNATIVE_API,          L"--ntdll-alternative-api",        SO_NONE    },
     // scripts
-    { OPT_INJECT_HIJACK_REMOTE_THREAD,    L"inject_hijack_remote_thread",    SO_NONE },
-    { OPT_INJECT_CREATE_REMOTE_THREAD,    L"inject_create_remote_thread",    SO_NONE },
-    { OPT_INJECT_CREATE_HOLLOW_PROCESS,   L"inject_create_hollow_process",   SO_NONE },
-    { OPT_INJECT_CREATE_DOPPEL_PROCESS,   L"inject_create_doppel_process",   SO_NONE },
-    { OPT_INJECT_QUEUE_APC,               L"inject_queue_apc",               SO_NONE },
-    { OPT_INJECT_QUEUE_APC_EARLY_BIRD,    L"inject_queue_apc_early_bird",    SO_NONE },
-    { OPT_INJECT_COM_IRUNDOWN_DOCALLBACK, L"inject_com_irundown_docallback", SO_NONE },
-    { OPT_EXECUTE_ROP_GADGET_LOCAL,       L"execute_rop_gadget_local",       SO_NONE },
+    { OPT_INJECT_HIJACK_REMOTE_THREAD,    L"inject_hijack_remote_thread",    SO_NONE    },
+    { OPT_INJECT_CREATE_REMOTE_THREAD,    L"inject_create_remote_thread",    SO_NONE    },
+    { OPT_INJECT_CREATE_HOLLOW_PROCESS,   L"inject_create_hollow_process",   SO_NONE    },
+    { OPT_INJECT_CREATE_DOPPEL_PROCESS,   L"inject_create_doppel_process",   SO_NONE    },
+    { OPT_INJECT_QUEUE_APC,               L"inject_queue_apc",               SO_NONE    },
+    { OPT_INJECT_QUEUE_APC_EARLY_BIRD,    L"inject_queue_apc_early_bird",    SO_NONE    },
+    { OPT_INJECT_COM_IRUNDOWN_DOCALLBACK, L"inject_com_irundown_docallback", SO_NONE    },
+    { OPT_EXECUTE_ROP_GADGET_LOCAL,       L"execute_rop_gadget_local",       SO_NONE    },
     // script options
-    { OPT_PROCESS,             L"--process",             SO_REQ_SEP},
-    { OPT_THREAD,              L"--thread",              SO_REQ_SEP},
-    { OPT_ORIGINAL_IMAGE,      L"--original-image",      SO_REQ_SEP},
-    { OPT_INJECTED_IMAGE,      L"--injected-image",      SO_REQ_SEP},
-    { OPT_PROCESS_OPEN,        L"--process-open",        SO_REQ_SEP},
-    { OPT_PROCESS_MEMORY_INIT, L"--process-memory-init", SO_REQ_SEP},
+    { OPT_PROCESS,                        L"--process",                      SO_REQ_SEP },
+    { OPT_THREAD,                         L"--thread",                       SO_REQ_SEP },
+    { OPT_ORIGINAL_IMAGE,                 L"--original-image",               SO_REQ_SEP },
+    { OPT_INJECTED_IMAGE,                 L"--injected-image",               SO_REQ_SEP },
+    { OPT_PROCESS_OPEN,                   L"--process-open",                 SO_REQ_SEP },
+    { OPT_PROCESS_MEMORY_INIT,            L"--process-memory-init",          SO_REQ_SEP },
     SO_END_OF_OPTIONS
 };
 
@@ -135,7 +135,7 @@ bool process_args_inject_hijack_remote_thread(wchar_t *binary, CSimpleOptW& args
 
         case OPT_PROCESS_OPEN: {
 
-            wchar_t* end;
+            wchar_t *end;
             uint32_t m = wcstoul(args.OptionArg(), &end, 10);
             if (errno == ERANGE || m == 0 || m > (uint32_t)scripts::RemoteProcessOpenMethod::MaxValue + 1) {
                 print_usage(binary);
@@ -148,7 +148,7 @@ bool process_args_inject_hijack_remote_thread(wchar_t *binary, CSimpleOptW& args
 
         case OPT_PROCESS_MEMORY_INIT: {
 
-            wchar_t* end;
+            wchar_t *end;
             uint32_t m = wcstoul(args.OptionArg(), &end, 10);
             if (errno == ERANGE || m == 0 || m > (uint32_t)scripts::RemoteProcessMemoryMethod::MaxValue + 1) {
                 print_usage(binary);
@@ -184,7 +184,7 @@ bool process_args_inject_hijack_remote_thread(wchar_t *binary, CSimpleOptW& args
     uint32_t pid = 0;
 
     {
-        wchar_t* end;
+        wchar_t *end;
         pid = wcstoul(process.c_str(), &end, 10);
         if (errno == ERANGE) {
             bblog::error(L"invalid PID: {}", process.c_str());
@@ -240,7 +240,7 @@ bool process_args_inject_create_remote_thread(wchar_t *binary, CSimpleOptW& args
 
         case OPT_PROCESS_OPEN: {
 
-            wchar_t* end;
+            wchar_t *end;
             uint32_t m = wcstoul(args.OptionArg(), &end, 10);
             if (errno == ERANGE || m == 0 || m > (uint32_t)scripts::RemoteProcessOpenMethod::MaxValue + 1) {
                 print_usage(binary);
@@ -253,7 +253,7 @@ bool process_args_inject_create_remote_thread(wchar_t *binary, CSimpleOptW& args
 
         case OPT_PROCESS_MEMORY_INIT: {
 
-            wchar_t* end;
+            wchar_t *end;
             uint32_t m = wcstoul(args.OptionArg(), &end, 10);
             if (errno == ERANGE || m == 0 || m > (uint32_t)scripts::RemoteProcessMemoryMethod::MaxValue + 1) {
                 print_usage(binary);
@@ -289,7 +289,7 @@ bool process_args_inject_create_remote_thread(wchar_t *binary, CSimpleOptW& args
     uint32_t pid = 0;
 
     {
-        wchar_t* end;
+        wchar_t *end;
         pid = wcstoul(process.c_str(), &end, 10);
         if (errno == ERANGE) {
             bblog::error(L"invalid PID: {}", process.c_str());
@@ -347,7 +347,7 @@ bool process_args_inject_create_hollow_process(wchar_t *binary, CSimpleOptW& arg
 
         case OPT_PROCESS_MEMORY_INIT: {
 
-            wchar_t* end;
+            wchar_t *end;
             uint32_t m = wcstoul(args.OptionArg(), &end, 10);
             if (errno == ERANGE || m == 0 || m > (uint32_t)scripts::RemoteProcessMemoryMethod::MaxValue + 1) {
                 print_usage(binary);
@@ -421,7 +421,7 @@ bool process_args_inject_create_doppel_process(wchar_t *binary, CSimpleOptW& arg
 
         case OPT_PROCESS_MEMORY_INIT: {
 
-            wchar_t* end;
+            wchar_t *end;
             uint32_t m = wcstoul(args.OptionArg(), &end, 10);
             if (errno == ERANGE || m == 0 || m > (uint32_t)scripts::RemoteProcessMemoryMethod::MaxValue + 1) {
                 print_usage(binary);
@@ -499,7 +499,7 @@ bool process_args_inject_queue_apc(wchar_t *binary, CSimpleOptW& args) {
 
         case OPT_PROCESS_OPEN: {
 
-            wchar_t* end;
+            wchar_t *end;
             uint32_t m = wcstoul(args.OptionArg(), &end, 10);
             if (errno == ERANGE || m == 0 || m > (uint32_t)scripts::RemoteProcessOpenMethod::MaxValue + 1) {
                 print_usage(binary);
@@ -512,7 +512,7 @@ bool process_args_inject_queue_apc(wchar_t *binary, CSimpleOptW& args) {
 
         case OPT_PROCESS_MEMORY_INIT: {
 
-            wchar_t* end;
+            wchar_t *end;
             uint32_t m = wcstoul(args.OptionArg(), &end, 10);
             if (errno == ERANGE || m == 0 || m > (uint32_t)scripts::RemoteProcessMemoryMethod::MaxValue + 1) {
                 print_usage(binary);
@@ -549,7 +549,7 @@ bool process_args_inject_queue_apc(wchar_t *binary, CSimpleOptW& args) {
     uint32_t pid = 0;
 
     {
-        wchar_t* end;
+        wchar_t *end;
         pid = wcstoul(process.c_str(), &end, 10);
         if (errno == ERANGE) {
             bblog::error(L"invalid PID: {}", process.c_str());
@@ -570,7 +570,7 @@ bool process_args_inject_queue_apc(wchar_t *binary, CSimpleOptW& args) {
 
     if (!thread.empty()) {
 
-        wchar_t* end;
+        wchar_t *end;
         tid = wcstoul(thread.c_str(), &end, 10);
         if (errno == ERANGE || tid == 0) {
             wprintf(L"  [-] invalid TID\n");
@@ -615,7 +615,7 @@ bool process_args_inject_queue_apc_early_bird(wchar_t *binary, CSimpleOptW& args
 
         case OPT_PROCESS_MEMORY_INIT: {
 
-            wchar_t* end;
+            wchar_t *end;
             uint32_t m = wcstoul(args.OptionArg(), &end, 10);
             if (errno == ERANGE || m == 0 || m > (uint32_t)scripts::RemoteProcessMemoryMethod::MaxValue + 1) {
                 print_usage(binary);
@@ -684,7 +684,7 @@ bool process_args_inject_com_irundown_docallback(wchar_t *binary, CSimpleOptW& a
 
         case OPT_PROCESS_OPEN: {
 
-            wchar_t* end;
+            wchar_t *end;
             uint32_t m = wcstoul(args.OptionArg(), &end, 10);
             if (errno == ERANGE || m == 0 || m > (uint32_t)scripts::RemoteProcessOpenMethod::MaxValue + 1) {
                 print_usage(binary);
@@ -697,7 +697,7 @@ bool process_args_inject_com_irundown_docallback(wchar_t *binary, CSimpleOptW& a
 
         case OPT_PROCESS_MEMORY_INIT: {
 
-            wchar_t* end;
+            wchar_t *end;
             uint32_t m = wcstoul(args.OptionArg(), &end, 10);
             if (errno == ERANGE || m == 0 || m > (uint32_t)scripts::RemoteProcessMemoryMethod::MaxValue + 1) {
                 print_usage(binary);
@@ -733,7 +733,7 @@ bool process_args_inject_com_irundown_docallback(wchar_t *binary, CSimpleOptW& a
     uint32_t pid = 0;
 
     {
-        wchar_t* end;
+        wchar_t *end;
         pid = wcstoul(process.c_str(), &end, 10);
         if (errno == ERANGE) {
             bblog::error(L"invalid PID: {}", process.c_str());

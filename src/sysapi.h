@@ -48,7 +48,7 @@ HANDLE ProcessCreate(HANDLE SectionHandle);
 bool ProcessGetBasicInfo(HANDLE ProcessHandle, PROCESS_BASIC_INFORMATION& BasicInfo);
 bool ProcessGetWow64Info(HANDLE ProcessHandle, bool& is_64);
 
-uint32_t ProcessFind(const wchar_t* name);
+uint32_t ProcessFind(const wchar_t *name);
 HANDLE ProcessOpen(uint32_t pid, ACCESS_MASK AccessMask);
 HANDLE ProcessOpenByHwnd(HWND hWnd, ACCESS_MASK AccessMask);
 
@@ -76,13 +76,13 @@ bool VirtualMemoryProtect(PVOID BaseAddress, SIZE_T Size, ULONG& Protect, HANDLE
 bool VirtualMemoryWrite(PVOID Data, SIZE_T Size, PVOID BaseAddress, HANDLE ProcessHandle = GetCurrentProcess());
 size_t VirtualMemoryRead(PVOID Data, SIZE_T Size, PVOID BaseAddress, HANDLE ProcessHandle = GetCurrentProcess());
 
-HANDLE TransactionCreate(const wchar_t* path);
+HANDLE TransactionCreate(const wchar_t *path);
 bool TransactionRollback(HANDLE hTransaction);
 bool TransactionSet(HANDLE hTransaction);
 
 HANDLE EventCreate();
 
-HANDLE FileOpen(const wchar_t* path);
+HANDLE FileOpen(const wchar_t *path);
 HANDLE FileCreate(const wchar_t *path, ACCESS_MASK DesiredAccess, ULONG ShareAccess, size_t Size);
 bool FileWrite(HANDLE FileHandle, PVOID Data, SIZE_T Size);
 size_t FileGetSize(HANDLE FileHandle);
@@ -91,6 +91,6 @@ bool AdjustPrivilege(ULONG Privilege);
 
 bool DumpLiveSystem(HANDLE FileHandle);
 
-HMODULE LoadLibraryCopyW(const wchar_t* ModuleName);
+HMODULE LoadLibraryCopyW(const wchar_t *ModuleName);
 
-}
+} // namespace sysapi
