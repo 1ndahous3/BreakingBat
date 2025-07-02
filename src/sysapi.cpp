@@ -226,8 +226,6 @@ void init(const options_t& sysapi_opts) {
 
     WIN32U_RESOLVE(NtUserGetWindowProcessHandle);
 #undef WIN32U_RESOLVE
-
-    wprintf(L"\n");
 }
 
 PPEB GetPeb() {

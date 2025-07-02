@@ -5,14 +5,14 @@
 
 #include "common.h"
 #include "sysapi.h"
-#include "scripts.h"
 #include "fs.h"
 #include "pdb.h"
 #include "logging.h"
+#include "modules.h"
 
 #include "kernel_dump.h"
 
-namespace scripts {
+namespace modules {
 
 const char *decode(RemoteProcessMemoryMethod method) {
     switch (method) {
@@ -579,4 +579,4 @@ bool system_init_live_dump(kernel_dump::kernel_dump_context_t& ctx) {
     return true;
 }
 
-} // namespace scripts
+} // namespace modules

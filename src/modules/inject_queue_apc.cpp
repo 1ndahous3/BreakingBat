@@ -1,10 +1,10 @@
 #include <cstdio>
 
 #include "sysapi.h"
-#include "scripts.h"
+#include "modules.h"
 #include "logging.h"
 
-namespace scripts {
+namespace modules {
 
 bool inject_queue_apc(uint32_t pid, uint32_t tid, RemoteProcessOpenMethod open_method, RemoteProcessMemoryMethod memory_method) {
 
@@ -70,4 +70,4 @@ bool inject_queue_apc(uint32_t pid, uint32_t tid, RemoteProcessOpenMethod open_m
     return true;
 }
 
-} // namespace scripts
+} // namespace modules

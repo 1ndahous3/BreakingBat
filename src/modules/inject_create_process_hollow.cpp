@@ -2,14 +2,14 @@
 #include <string>
 
 #include "common.h"
-#include "scripts.h"
+#include "modules.h"
 #include "sysapi.h"
 #include "fs.h"
 #include "unique_memory.h"
 #include "logging.h"
 
 
-namespace scripts {
+namespace modules {
 
 bool inject_create_process_hollow(const std::wstring& original_image, const std::wstring& injected_image, RemoteProcessMemoryMethod method) {
 
@@ -134,4 +134,4 @@ bool inject_create_process_hollow(const std::wstring& original_image, const std:
     return true;
 }
 
-} // namespace scripts
+} // namespace modules

@@ -1,10 +1,10 @@
 #include <cstdio>
 
 #include "sysapi.h"
-#include "scripts.h"
+#include "modules.h"
 #include "logging.h"
 
-namespace scripts {
+namespace modules {
 
 bool inject_create_remote_thread(uint32_t pid, RemoteProcessOpenMethod open_method, RemoteProcessMemoryMethod memory_method) {
 
@@ -49,4 +49,4 @@ bool inject_create_remote_thread(uint32_t pid, RemoteProcessOpenMethod open_meth
     return true;
 }
 
-} // namespace scripts
+} // namespace modules

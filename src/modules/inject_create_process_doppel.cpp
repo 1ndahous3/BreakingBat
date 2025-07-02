@@ -2,7 +2,7 @@
 #include <string>
 
 #include "common.h"
-#include "scripts.h"
+#include "modules.h"
 #include "unique_memory.h"
 #include "logging.h"
 
@@ -13,7 +13,7 @@
 
 #include <iostream>
 
-namespace scripts {
+namespace modules {
 
 bool inject_create_process_doppel(const std::wstring& original_image, const std::wstring& injected_image, RemoteProcessMemoryMethod method) {
 
@@ -172,4 +172,4 @@ bool inject_create_process_doppel(const std::wstring& original_image, const std:
     return true;
 }
 
-} // namespace scripts
+} // namespace modules

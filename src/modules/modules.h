@@ -10,7 +10,7 @@
 
 #include "kernel_dump.h"
 
-namespace scripts {
+namespace modules {
 
 extern char *default_shellcode_data;
 extern size_t default_shellcode_size;
@@ -146,4 +146,4 @@ bool inject_queue_apc_early_bird(const std::wstring& original_image, RemoteProce
 bool inject_com_irundown_docallback(uint32_t pid, RemoteProcessOpenMethod open_method, RemoteProcessMemoryMethod memory_method);
 void execute_rop_gadget_local();
 
-} // namespace scripts
+} // namespace modules

@@ -21,6 +21,10 @@ target_compile_definitions(breaking_bat PUBLIC
                            PHNT_VERSION=PHNT_WIN11_24H2
                            SPDLOG_WCHAR_TO_UTF8_SUPPORT SPDLOG_USE_STD_FORMAT)
 
+# Python
+
+find_package(Python REQUIRED Development)
+
 # RAW PDB
 
 file(GLOB RAW_PDB_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/deps/raw_pdb/src/*.cpp")
@@ -47,15 +51,17 @@ target_sources(breaking_bat PRIVATE
     src/hash.cpp
     src/kernel_dump.cpp
     src/main.cpp
-    src/scripts/scripts.cpp
-    src/scripts/inject_hijack_remote_thread.cpp
-    src/scripts/inject_create_remote_thread.cpp
-    src/scripts/inject_create_process_hollow.cpp
-    src/scripts/inject_create_process_doppel.cpp
-    src/scripts/inject_queue_apc.cpp
-    src/scripts/inject_queue_apc_early_bird.cpp
-    src/scripts/inject_com_irundown_docallback.cpp
-    src/scripts/execute_rop_gadget_local.cpp
+    src/python_core.cpp
+    src/python_modules.cpp
+    src/modules/modules.cpp
+    src/modules/inject_hijack_remote_thread.cpp
+    src/modules/inject_create_remote_thread.cpp
+    src/modules/inject_create_process_hollow.cpp
+    src/modules/inject_create_process_doppel.cpp
+    src/modules/inject_queue_apc.cpp
+    src/modules/inject_queue_apc_early_bird.cpp
+    src/modules/inject_com_irundown_docallback.cpp
+    src/modules/execute_rop_gadget_local.cpp
     ${RAW_PDB_SOURCES}
     ${IDL_SOURCES}
 )
@@ -79,4 +85,4 @@ target_compile_options(breaking_bat PRIVATE /W4 /WX
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/deps/spdlog")
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/deps/kdmp-parser/src/lib")
 
-target_link_libraries(breaking_bat PRIVATE spdlog::spdlog_header_only)
+target_link_libraries(breaking_bat PRIVATE Python::Python spdlog::spdlog_header_only)

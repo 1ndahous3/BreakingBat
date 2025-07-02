@@ -1,7 +1,7 @@
 #include <cstdio>
 
 #include "sysapi.h"
-#include "scripts.h"
+#include "modules.h"
 #include "shellcode.h"
 #include "logging.h"
 
@@ -14,7 +14,7 @@ int __stdcall test_func(int a1, int a2, int a3, int a4, int a5, int a6, int a7, 
 }
 
 
-namespace scripts {
+namespace modules {
 
 void execute_rop_gadget_local() {
 
@@ -46,4 +46,4 @@ void execute_rop_gadget_local() {
     bblog::info("[+] Success");
 }
 
-} // namespace scripts
+} // namespace modules

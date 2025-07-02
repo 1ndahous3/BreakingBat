@@ -1,10 +1,10 @@
 #include <cstdio>
 
 #include "sysapi.h"
-#include "scripts.h"
+#include "modules.h"
 #include "logging.h"
 
-namespace scripts {
+namespace modules {
 
 bool inject_queue_apc_early_bird(const std::wstring& original_image, RemoteProcessMemoryMethod memory_method) {
 
@@ -63,4 +63,4 @@ bool inject_queue_apc_early_bird(const std::wstring& original_image, RemoteProce
     return true;
 }
 
-} // namespace scripts
+} // namespace modules

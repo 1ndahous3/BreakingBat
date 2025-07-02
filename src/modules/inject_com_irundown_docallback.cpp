@@ -11,7 +11,7 @@
 #include "fs.h"
 
 #include "logging.h"
-#include "scripts.h"
+#include "modules.h"
 
 #include "rpc/rundown.h"
 
@@ -113,7 +113,7 @@ typedef struct tagSOleTlsData {
 } SOleTlsData;
 
 
-namespace scripts {
+namespace modules {
 
 struct ipid_entry_t {
     IID iid;
@@ -438,4 +438,4 @@ bool inject_com_irundown_docallback(uint32_t pid, RemoteProcessOpenMethod open_m
     return false;
 }
 
-} // namespace scripts
+} // namespace modules
