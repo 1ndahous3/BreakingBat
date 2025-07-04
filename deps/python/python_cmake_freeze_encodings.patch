@@ -1,0 +1,64 @@
+diff --git a/cmake/libpython/CMakeLists.txt b/cmake/libpython/CMakeLists.txt
+index c344b67..483d1f0 100644
+--- a/cmake/libpython/CMakeLists.txt
++++ b/cmake/libpython/CMakeLists.txt
+@@ -563,6 +563,10 @@ set(LIBPYTHON_FROZEN_SOURCES
+   ${SRC_DIR}/Python/frozen_modules/zipimport.h
+   ${SRC_DIR}/Python/frozen_modules/abc.h
+   ${SRC_DIR}/Python/frozen_modules/codecs.h
++  ${SRC_DIR}/Python/frozen_modules/encodings.aliases.h
++  ${SRC_DIR}/Python/frozen_modules/encodings.h
++  ${SRC_DIR}/Python/frozen_modules/encodings.utf_8.h
++  ${SRC_DIR}/Python/frozen_modules/encodings.cp1252.h
+   ${SRC_DIR}/Python/frozen_modules/io.h
+   ${SRC_DIR}/Python/frozen_modules/_collections_abc.h
+   ${SRC_DIR}/Python/frozen_modules/_sitebuiltins.h
+@@ -610,6 +614,26 @@ add_custom_command(
+       codecs
+       ${SRC_DIR}/Lib/codecs.py
+       ${SRC_DIR}/Python/frozen_modules/codecs.h
++  COMMAND
++    _freeze_importlib
++      encodings.aliases
++      ${SRC_DIR}/Lib/encodings/aliases.py
++      ${SRC_DIR}/Python/frozen_modules/encodings.aliases.h
++  COMMAND
++    _freeze_importlib
++      encodings
++      ${SRC_DIR}/Lib/encodings/__init__.py
++      ${SRC_DIR}/Python/frozen_modules/encodings.h
++  COMMAND
++    _freeze_importlib
++      encodings.utf_8
++      ${SRC_DIR}/Lib/encodings/utf_8.py
++      ${SRC_DIR}/Python/frozen_modules/encodings.utf_8.h
++  COMMAND
++    _freeze_importlib
++      encodings.cp1252
++      ${SRC_DIR}/Lib/encodings/cp1252.py
++      ${SRC_DIR}/Python/frozen_modules/encodings.cp1252.h
+   COMMAND
+     _freeze_importlib
+       io
+@@ -712,6 +736,10 @@ add_custom_command(
+       ${SRC_DIR}/Lib/zipimport.py
+       ${SRC_DIR}/Lib/abc.py
+       ${SRC_DIR}/Lib/codecs.py
++      ${SRC_DIR}/Lib/encodings/aliases.py
++      ${SRC_DIR}/Lib/encodings/__init__.py
++      ${SRC_DIR}/Lib/encodings/utf_8.py
++      ${SRC_DIR}/Lib/encodings/cp1252.py
+       ${SRC_DIR}/Lib/io.py
+       ${SRC_DIR}/Lib/_collections_abc.py
+       ${SRC_DIR}/Lib/_sitebuiltins.py
+@@ -780,6 +808,10 @@ add_custom_command(
+         "${SRC_DIR}/Python/frozen_modules/zipimport.h:zipimport"
+         "${SRC_DIR}/Python/frozen_modules/abc.h:abc"
+         "${SRC_DIR}/Python/frozen_modules/codecs.h:codecs"
++        "${SRC_DIR}/Python/frozen_modules/encodings.aliases.h:encodings.aliases"
++        "${SRC_DIR}/Python/frozen_modules/encodings.h:encodings"
++        "${SRC_DIR}/Python/frozen_modules/encodings.utf_8.h:encodings.utf_8"
++        "${SRC_DIR}/Python/frozen_modules/encodings.cp1252.h:encodings.cp1252"
+         "${SRC_DIR}/Python/frozen_modules/io.h:io"
+         "${SRC_DIR}/Python/frozen_modules/_collections_abc.h:_collections_abc"
+         "${SRC_DIR}/Python/frozen_modules/_sitebuiltins.h:_sitebuiltins"

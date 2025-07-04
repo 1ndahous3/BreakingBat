@@ -71,7 +71,7 @@ PyObject *py_inject_queue_apc(PyObject *, PyObject *args, PyObject *kwargs) {
 
     if (!PyArg_ParseTupleAndKeywords(
             args, kwargs,
-            "s|iii", kwlist,
+            "s|iii", (char **)kwlist,
             &process_s,
             &thread,
             &open_method_i,
@@ -120,7 +120,7 @@ PyObject *py_inject_queue_apc_early_bird(PyObject *, PyObject *args, PyObject *k
 
     if (!PyArg_ParseTupleAndKeywords(
             args, kwargs,
-            "si", kwlist,
+            "si", (char **)kwlist,
             &original_image_s,
             &memory_method_i
         )) {
@@ -155,7 +155,7 @@ PyObject *py_inject_hijack_remote_thread(PyObject *, PyObject *args, PyObject *k
 
     if (!PyArg_ParseTupleAndKeywords(
             args, kwargs,
-            "sii", kwlist,
+            "sii", (char **)kwlist,
             &process_s,
             &open_method_i,
             &memory_method_i
@@ -203,7 +203,7 @@ PyObject *py_inject_create_remote_thread(PyObject *, PyObject *args, PyObject *k
 
     if (!PyArg_ParseTupleAndKeywords(
             args, kwargs,
-            "sii", kwlist,
+            "sii", (char **)kwlist,
             &process_s,
             &open_method_i,
             &memory_method_i
@@ -251,7 +251,7 @@ PyObject *py_inject_create_process_hollow(PyObject *, PyObject *args, PyObject *
 
     if (!PyArg_ParseTupleAndKeywords(
             args, kwargs,
-            "ssi", kwlist,
+            "ssi", (char **)kwlist,
             &original_image_s,
             &injected_image_s,
             &memory_method_i
@@ -289,7 +289,7 @@ PyObject *py_inject_create_process_doppel(PyObject *, PyObject *args, PyObject *
 
     if (!PyArg_ParseTupleAndKeywords(
             args, kwargs,
-            "ssi", kwlist,
+            "ssi", (char **)kwlist,
             &original_image_s,
             &injected_image_s,
             &memory_method_i
@@ -327,7 +327,7 @@ PyObject *py_inject_com_irundown_docallback(PyObject *, PyObject *args, PyObject
 
     if (!PyArg_ParseTupleAndKeywords(
             args, kwargs,
-            "sii", kwlist,
+            "sii", (char **)kwlist,
             &process_s,
             &open_method_i,
             &memory_method_i

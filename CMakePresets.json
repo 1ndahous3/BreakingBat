@@ -2,35 +2,69 @@
   "version": 3,
   "cmakeMinimumRequired": {
     "major": 3,
-    "minor": 15,
+    "minor": 25,
     "patch": 0
   },
   "configurePresets": [
     {
-      "name": "x64-Debug",
-      "displayName": "x64 Debug",
+      "name": "base",
+      "hidden": true,
       "generator": "Visual Studio 17 2022",
-      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "binaryDir": "${sourceDir}/out/build/${presetName}"
+    },
+    {
+      "name": "base-x64",
+      "hidden": true,
+      "inherits": "base",
       "architecture": {
         "value": "x64",
         "strategy": "external"
-      },
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug"
       }
+    },
+    {
+      "name": "base-x86",
+      "hidden": true,
+      "inherits": "base",
+      "architecture": {
+        "value": "x86",
+        "strategy": "external"
+      }
+    },
+    {
+      "name": "base-debug",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_CONFIGURATION_TYPES": "Debug"
+      }
+    },
+    {
+      "name": "base-release",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_CONFIGURATION_TYPES": "Release"
+      }
+    },
+    {
+      "name": "x64-Debug",
+      "displayName": "x64 Debug",
+      "inherits": [ "base-x64", "base-debug" ]
+    },
+    {
+      "name": "x64-Release",
+      "displayName": "x64 Release",
+      "inherits": [ "base-x64", "base-release" ]
     },
     {
       "name": "x86-Debug",
       "displayName": "x86 Debug",
-      "generator": "Visual Studio 17 2022",
-      "binaryDir": "${sourceDir}/out/build/${presetName}",
-      "architecture": {
-        "value": "x86",
-        "strategy": "external"
-      },
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug"
-      }
+      "inherits": [ "base-x86", "base-debug" ]
+    },
+    {
+      "name": "x86-Release",
+      "displayName": "x86 Release",
+      "inherits": [ "base-x86", "base-release" ]
     }
   ],
   "buildPresets": [
@@ -40,9 +74,19 @@
       "displayName": "Build x64 Debug"
     },
     {
+      "name": "x64-Release",
+      "configurePreset": "x64-Release",
+      "displayName": "Build x64 Release"
+    },
+    {
       "name": "x86-Debug",
       "configurePreset": "x86-Debug",
       "displayName": "Build x86 Debug"
+    },
+    {
+      "name": "x86-Release",
+      "configurePreset": "x86-Release",
+      "displayName": "Build x86 Release"
     }
   ],
   "testPresets": [
@@ -52,9 +96,19 @@
       "displayName": "Test x64 Debug"
     },
     {
+      "name": "x64-Release",
+      "configurePreset": "x64-Release",
+      "displayName": "Test x64 Release"
+    },
+    {
       "name": "x86-Debug",
       "configurePreset": "x86-Debug",
       "displayName": "Test x86 Debug"
+    },
+    {
+      "name": "x86-Release",
+      "configurePreset": "x86-Release",
+      "displayName": "Test x86 Release"
     }
   ]
 }

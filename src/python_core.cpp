@@ -16,7 +16,7 @@ static PyObject *py_init_sysapi(PyObject * /*self*/, PyObject *args, PyObject *k
 
     if (!PyArg_ParseTupleAndKeywords(
             args, kwargs,
-            "|O&O&", kwlist,
+            "|O&O&", (char **)kwlist,
             PyObject_IsTrue, &ntdll_alt_api,
             PyObject_IsTrue, &ntdll_copy
         )) {
@@ -76,11 +76,13 @@ namespace python {
 
 void initialize() {
 
-    PyStatus status;
     PyConfig config;
     PyConfig_InitPythonConfig(&config);
+    config.use_frozen_modules = 1;
+    config.isolated = 1;
+    config.site_import = 0;
 
-    status = PyConfig_SetBytesString(&config, &config.program_name, "breaking_bat");
+    auto status = PyConfig_SetBytesString(&config, &config.program_name, "breaking_bat");
     if (PyStatus_Exception(status)) {
         goto exception;
     }
@@ -91,6 +93,7 @@ void initialize() {
     if (PyStatus_Exception(status)) {
         goto exception;
     }
+
     PyConfig_Clear(&config);
 
     PyModule_Create(&module_def);

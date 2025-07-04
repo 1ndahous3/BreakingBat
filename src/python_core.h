@@ -1,5 +1,7 @@
 #pragma once
 
+#include "sysapi.h"
+
 #ifdef _DEBUG
 #undef _DEBUG
 #include <python.h>

@@ -10,3 +10,9 @@
 [submodule "spdlog"]
 	path = deps/spdlog
 	url = https://github.com/gabime/spdlog
+[submodule "python-cmake-buildsystem"]
+	path = deps/python/python-cmake-buildsystem
+	url = https://github.com/python-cmake-buildsystem/python-cmake-buildsystem.git
+[submodule "cpython"]
+	path = deps/python/cpython
+	url = https://github.com/python/cpython.git

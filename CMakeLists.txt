@@ -1,6 +1,7 @@
-﻿cmake_minimum_required(VERSION 3.15)
+﻿cmake_minimum_required(VERSION 3.25)
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "ProgramDatabase")
 
 project(breaking_bat
     LANGUAGES C CXX
@@ -15,15 +16,15 @@ target_include_directories(breaking_bat PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/deps
 target_include_directories(breaking_bat PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/deps/spdlog/include")
 target_include_directories(breaking_bat PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/deps/raw_pdb/src")
 target_include_directories(breaking_bat PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/deps/kdmp-parser/src/lib")
+target_include_directories(breaking_bat PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/deps/python/cpython/include")
+target_include_directories(breaking_bat PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/deps/python/cpython/PC")
+target_include_directories(breaking_bat PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/deps/python/cpython/Python") # for frozen_modules
 
 target_compile_definitions(breaking_bat PUBLIC
                            _CRT_SECURE_NO_WARNINGS
                            PHNT_VERSION=PHNT_WIN11_24H2
-                           SPDLOG_WCHAR_TO_UTF8_SUPPORT SPDLOG_USE_STD_FORMAT)
-
-# Python
-
-find_package(Python REQUIRED Development)
+                           SPDLOG_WCHAR_TO_UTF8_SUPPORT SPDLOG_USE_STD_FORMAT
+                           Py_NO_ENABLE_SHARED)
 
 # RAW PDB
 
@@ -66,13 +67,7 @@ target_sources(breaking_bat PRIVATE
     ${IDL_SOURCES}
 )
 
-foreach(CompilerFlag CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE
-                     CMAKE_C_FLAGS CMAKE_C_FLAGS_DEBUG CMAKE_C_FLAGS_RELEASE)
-    string(REPLACE "/MD" "/MT" ${CompilerFlag} "${${CompilerFlag}}")
-endforeach()
-
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /Zi")
-set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /DEBUG:FULL /OPT:REF /OPT:ICF")
+target_link_options(breaking_bat PRIVATE /DEBUG:FULL /OPT:REF /OPT:ICF)
 
 target_compile_features(breaking_bat PRIVATE cxx_std_23)
 target_compile_options(breaking_bat PRIVATE /W4 /WX
@@ -82,7 +77,8 @@ target_compile_options(breaking_bat PRIVATE /W4 /WX
     /guard:cf- # because of 'ControlFlowGuardEnabled' flag checks of caller process in some kernel functions (i.e. 'PspCreateThread()')
 )
 
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/deps/python")
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/deps/spdlog")
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/deps/kdmp-parser/src/lib")
 
-target_link_libraries(breaking_bat PRIVATE Python::Python spdlog::spdlog_header_only)
+target_link_libraries(breaking_bat PRIVATE libpython-static spdlog::spdlog_header_only)
