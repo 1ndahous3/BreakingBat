@@ -131,7 +131,7 @@ ConnectToIRundown(OID oid, OXID oxid, IPID ipid) {
 
         HRESULT hr = CoInitialize(nullptr);
         if (FAILED(hr)) {
-            bblog::error("unable to initialize COM, HRESULT = 0x{:x}", hr);
+            bblog::error("unable to initialize COM, {}", str::decode_hresult(hr));
             return false;
         }
 
@@ -161,7 +161,7 @@ ConnectToIRundown(OID oid, OXID oxid, IPID ipid) {
     HRESULT hr = CoGetObject(name.c_str(), NULL, IID_IRundown, (void **)&irundown);
 
     if (FAILED(hr)) {
-        bblog::error("unable to create IRundown object, HRESULT = 0x{:x}", hr);
+        bblog::error("unable to create IRundown object, {}", str::decode_hresult(hr));
     }
 
     return irundown;
@@ -425,7 +425,7 @@ bool inject_com_irundown_docallback(uint32_t pid, RemoteProcessOpenMethod open_m
 
         HRESULT hr = irundown->DoCallback(&params);
         if (FAILED(hr)) {
-            bblog::error("IRundown::DoCallback() error, HRESULT = 0x{:x}", hr);
+            bblog::error("IRundown::DoCallback() error, {}", str::decode_hresult(hr));
             continue;
         }
 

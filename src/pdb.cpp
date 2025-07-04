@@ -1,3 +1,4 @@
+#include "sysapi.h"
 #include <urlmon.h>
 
 #include <string>

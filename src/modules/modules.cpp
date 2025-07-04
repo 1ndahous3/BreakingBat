@@ -512,7 +512,7 @@ sysapi::unique_handle process_find_alertable_thread(HANDLE ProcessHandle) {
 
         NTSTATUS status = NtWaitForSingleObject(hLocalEvent.get(), FALSE, &Timeout);
         if (!NT_SUCCESS(status)) {
-            bblog::error("unable to wait for event, status = 0x{:x}", status);
+            bblog::error("unable to wait for event, {}", str::decode_ntstatus(status));
             ThreadHandle = sysapi::ThreadOpenNext(ProcessHandle, ThreadHandle.get());
             continue;
         }

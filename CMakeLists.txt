@@ -50,6 +50,8 @@ target_sources(breaking_bat PRIVATE
     src/pe.cpp
     src/pdb.cpp
     src/hash.cpp
+    src/common.cpp
+    src/errcodes.cpp
     src/kernel_dump.cpp
     src/main.cpp
     src/python_core.cpp
