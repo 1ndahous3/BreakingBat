@@ -37,16 +37,17 @@ static PyObject *py_init_sysapi(PyObject * /*self*/, PyObject *args, PyObject *k
 }
 
 static PyMethodDef module_methods[] = {
-    { "init_sysapi",                    (PyCFunction)py_init_sysapi,                    METH_VARARGS | METH_KEYWORDS, "Initial method to init system API" },
-    { "inject_queue_apc",               (PyCFunction)py_inject_queue_apc,               METH_VARARGS | METH_KEYWORDS, "inject_queue_apc"                  },
-    { "inject_queue_apc_early_bird",    (PyCFunction)py_inject_queue_apc_early_bird,    METH_VARARGS | METH_KEYWORDS, "inject_queue_apc_early_bird"       },
-    { "inject_hijack_remote_thread",    (PyCFunction)py_inject_hijack_remote_thread,    METH_VARARGS | METH_KEYWORDS, "inject_hijack_remote_thread"       },
-    { "inject_create_remote_thread",    (PyCFunction)py_inject_create_remote_thread,    METH_VARARGS | METH_KEYWORDS, "inject_create_remote_thread"       },
-    { "inject_create_process_hollow",   (PyCFunction)py_inject_create_process_hollow,   METH_VARARGS | METH_KEYWORDS, "inject_create_process_hollow"      },
-    { "inject_create_process_doppel",   (PyCFunction)py_inject_create_process_doppel,   METH_VARARGS | METH_KEYWORDS, "inject_create_process_doppel"      },
-    { "inject_com_irundown_docallback", (PyCFunction)py_inject_com_irundown_docallback, METH_VARARGS | METH_KEYWORDS, "inject_com_irundown_docallback"    },
-    { "execute_rop_gadget_local",       (PyCFunction)py_execute_rop_gadget_local,       METH_VARARGS | METH_KEYWORDS, "execute_rop_gadget_local"          },
-    { NULL,                             NULL,                                           0,                            NULL                                }
+    { "init_sysapi",                    (PyCFunction)py_init_sysapi,                    METH_VARARGS | METH_KEYWORDS, "Initial method to init system API"    },
+    { "set_default_options",            (PyCFunction)py_set_default_options,            METH_VARARGS | METH_KEYWORDS, "Set default options for future calls" },
+    { "inject_queue_apc",               (PyCFunction)py_inject_queue_apc,               METH_VARARGS | METH_KEYWORDS, "inject_queue_apc"                     },
+    { "inject_queue_apc_early_bird",    (PyCFunction)py_inject_queue_apc_early_bird,    METH_VARARGS | METH_KEYWORDS, "inject_queue_apc_early_bird"          },
+    { "inject_hijack_remote_thread",    (PyCFunction)py_inject_hijack_remote_thread,    METH_VARARGS | METH_KEYWORDS, "inject_hijack_remote_thread"          },
+    { "inject_create_remote_thread",    (PyCFunction)py_inject_create_remote_thread,    METH_VARARGS | METH_KEYWORDS, "inject_create_remote_thread"          },
+    { "inject_create_process_hollow",   (PyCFunction)py_inject_create_process_hollow,   METH_VARARGS | METH_KEYWORDS, "inject_create_process_hollow"         },
+    { "inject_create_process_doppel",   (PyCFunction)py_inject_create_process_doppel,   METH_VARARGS | METH_KEYWORDS, "inject_create_process_doppel"         },
+    { "inject_com_irundown_docallback", (PyCFunction)py_inject_com_irundown_docallback, METH_VARARGS | METH_KEYWORDS, "inject_com_irundown_docallback"       },
+    { "execute_rop_gadget_local",       (PyCFunction)py_execute_rop_gadget_local,       METH_VARARGS | METH_KEYWORDS, "execute_rop_gadget_local"             },
+    { NULL,                             NULL,                                           0,                            NULL                                   }
 };
 
 static struct PyModuleDef module_def = {

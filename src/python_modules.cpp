@@ -4,6 +4,9 @@
 #include "magic_enum.hpp"
 
 #include "modules/modules.h"
+#include "python_modules.h"
+
+struct module_context_t module_context;
 
 
 uint32_t get_pid(const std::wstring& process) {
@@ -59,6 +62,51 @@ void py_init_enums(PyObject *m) {
 }
 
 
+PyObject *py_set_default_options(PyObject *, PyObject *args, PyObject *kwargs) {
+
+    static const char *kwlist[] = { "open_method", "memory_method", NULL };
+
+    int open_method_i = -1;
+    int memory_method_i = -1;
+
+    if (!PyArg_ParseTupleAndKeywords(
+            args, kwargs,
+            "|ii", (char **)kwlist,
+            &open_method_i,
+            &memory_method_i
+        )) {
+        Py_RETURN_NONE;
+    }
+
+    bblog::info("| Setting default options:");
+
+    if (open_method_i != -1) {
+        auto open_method = magic_enum::enum_cast<modules::RemoteProcessOpenMethod>((uint8_t)open_method_i);
+        if (!open_method.has_value()) {
+            bblog::error("invalid RemoteProcessOpenMethod");
+            Py_RETURN_NONE;
+        }
+
+        module_context.process_open_method = *open_method;
+        bblog::info("|   Remote process open method: {}", magic_enum::enum_name(*open_method));
+    }
+
+    if (memory_method_i != -1) {
+        auto memory_method = magic_enum::enum_cast<modules::RemoteProcessMemoryMethod>((uint8_t)memory_method_i);
+        if (!memory_method.has_value()) {
+            bblog::error("invalid RemoteProcessMemoryMethod");
+            Py_RETURN_NONE;
+        }
+
+        module_context.process_memory_method = *memory_method;
+        bblog::info("|   Remote process memory method: {}", magic_enum::enum_name(*memory_method));
+    }
+
+    bblog::info("");
+
+    Py_RETURN_NONE;
+}
+
 PyObject *py_inject_queue_apc(PyObject *, PyObject *args, PyObject *kwargs) {
 
     static const char *kwlist[] = { "process", "thread", "open_method", "memory_method", NULL };
@@ -87,13 +135,21 @@ PyObject *py_inject_queue_apc(PyObject *, PyObject *args, PyObject *kwargs) {
         Py_RETURN_NONE;
     }
 
-    auto open_method = magic_enum::enum_cast<modules::RemoteProcessOpenMethod>((uint8_t)open_method_i);
+    auto open_method = module_context.process_open_method;
+    if (open_method_i != -1) {
+        open_method = magic_enum::enum_cast<modules::RemoteProcessOpenMethod>((uint8_t)open_method_i);
+    }
+
     if (!open_method.has_value()) {
         bblog::error("invalid RemoteProcessOpenMethod");
         Py_RETURN_NONE;
     }
 
-    auto memory_method = magic_enum::enum_cast<modules::RemoteProcessMemoryMethod>((uint8_t)memory_method_i);
+    auto memory_method = module_context.process_memory_method;
+    if (memory_method_i != -1) {
+        memory_method = magic_enum::enum_cast<modules::RemoteProcessMemoryMethod>((uint8_t)memory_method_i);
+    }
+
     if (!memory_method.has_value()) {
         bblog::error("invalid RemoteProcessMemoryMethod");
         Py_RETURN_NONE;
@@ -120,7 +176,7 @@ PyObject *py_inject_queue_apc_early_bird(PyObject *, PyObject *args, PyObject *k
 
     if (!PyArg_ParseTupleAndKeywords(
             args, kwargs,
-            "si", (char **)kwlist,
+            "s|i", (char **)kwlist,
             &original_image_s,
             &memory_method_i
         )) {
@@ -129,15 +185,21 @@ PyObject *py_inject_queue_apc_early_bird(PyObject *, PyObject *args, PyObject *k
 
     auto original_image_ws = str::to_wstring(original_image_s);
 
-    auto memory_method = magic_enum::enum_cast<modules::RemoteProcessMemoryMethod>((uint8_t)memory_method_i);
+    auto memory_method = module_context.process_memory_method;
+    if (memory_method_i != -1) {
+        memory_method = magic_enum::enum_cast<modules::RemoteProcessMemoryMethod>((uint8_t)memory_method_i);
+    }
+
     if (!memory_method.has_value()) {
         bblog::error("invalid RemoteProcessMemoryMethod");
         Py_RETURN_NONE;
     }
 
     bblog::info("| Script options:");
-    bblog::info("|   Remote process memory method: {}", magic_enum::enum_name(*memory_method));
     bblog::info("|   Original image: {}", original_image_s);
+    if (memory_method_i != -1) {
+        bblog::info("|   Remote process memory method: {}", magic_enum::enum_name(*memory_method));
+    }
     bblog::info("");
 
     modules::inject_queue_apc_early_bird(original_image_ws, *memory_method);
@@ -155,7 +217,7 @@ PyObject *py_inject_hijack_remote_thread(PyObject *, PyObject *args, PyObject *k
 
     if (!PyArg_ParseTupleAndKeywords(
             args, kwargs,
-            "sii", (char **)kwlist,
+            "s|ii", (char **)kwlist,
             &process_s,
             &open_method_i,
             &memory_method_i
@@ -170,13 +232,21 @@ PyObject *py_inject_hijack_remote_thread(PyObject *, PyObject *args, PyObject *k
         Py_RETURN_NONE;
     }
 
-    auto open_method = magic_enum::enum_cast<modules::RemoteProcessOpenMethod>((uint8_t)open_method_i);
+    auto open_method = module_context.process_open_method;
+    if (open_method_i != -1) {
+        open_method = magic_enum::enum_cast<modules::RemoteProcessOpenMethod>((uint8_t)open_method_i);
+    }
+
     if (!open_method.has_value()) {
         bblog::error("invalid RemoteProcessOpenMethod");
         Py_RETURN_NONE;
     }
 
-    auto memory_method = magic_enum::enum_cast<modules::RemoteProcessMemoryMethod>((uint8_t)memory_method_i);
+    auto memory_method = module_context.process_memory_method;
+    if (memory_method_i != -1) {
+        memory_method = magic_enum::enum_cast<modules::RemoteProcessMemoryMethod>((uint8_t)memory_method_i);
+    }
+
     if (!memory_method.has_value()) {
         bblog::error("invalid RemoteProcessMemoryMethod");
         Py_RETURN_NONE;
@@ -184,8 +254,12 @@ PyObject *py_inject_hijack_remote_thread(PyObject *, PyObject *args, PyObject *k
 
     bblog::info("| Script options:");
     bblog::info("|   Process: {}", process_s);
-    bblog::info("|   Remote process open method: {}", magic_enum::enum_name(*open_method));
-    bblog::info("|   Remote process memory method: {}", magic_enum::enum_name(*memory_method));
+    if (open_method_i != -1) {
+        bblog::info("|   Remote process open method: {}", magic_enum::enum_name(*open_method));
+    }
+    if (memory_method_i != -1) {
+        bblog::info("|   Remote process memory method: {}", magic_enum::enum_name(*memory_method));
+    }
     bblog::info("");
 
     modules::inject_hijack_remote_thread(pid, *open_method, *memory_method);
@@ -203,7 +277,7 @@ PyObject *py_inject_create_remote_thread(PyObject *, PyObject *args, PyObject *k
 
     if (!PyArg_ParseTupleAndKeywords(
             args, kwargs,
-            "sii", (char **)kwlist,
+            "s|ii", (char **)kwlist,
             &process_s,
             &open_method_i,
             &memory_method_i
@@ -218,13 +292,21 @@ PyObject *py_inject_create_remote_thread(PyObject *, PyObject *args, PyObject *k
         Py_RETURN_NONE;
     }
 
-    auto open_method = magic_enum::enum_cast<modules::RemoteProcessOpenMethod>((uint8_t)open_method_i);
+    auto open_method = module_context.process_open_method;
+    if (open_method_i != -1) {
+        open_method = magic_enum::enum_cast<modules::RemoteProcessOpenMethod>((uint8_t)open_method_i);
+    }
+
     if (!open_method.has_value()) {
         bblog::error("invalid RemoteProcessOpenMethod");
         Py_RETURN_NONE;
     }
 
-    auto memory_method = magic_enum::enum_cast<modules::RemoteProcessMemoryMethod>((uint8_t)memory_method_i);
+    auto memory_method = module_context.process_memory_method;
+    if (memory_method_i != -1) {
+        memory_method = magic_enum::enum_cast<modules::RemoteProcessMemoryMethod>((uint8_t)memory_method_i);
+    }
+
     if (!memory_method.has_value()) {
         bblog::error("invalid RemoteProcessMemoryMethod");
         Py_RETURN_NONE;
@@ -232,8 +314,12 @@ PyObject *py_inject_create_remote_thread(PyObject *, PyObject *args, PyObject *k
 
     bblog::info("| Script options:");
     bblog::info("|   Process: {}", process_s);
-    bblog::info("|   Remote process open method: {}", magic_enum::enum_name(*open_method));
-    bblog::info("|   Remote process memory method: {}", magic_enum::enum_name(*memory_method));
+    if (open_method_i != -1) {
+        bblog::info("|   Remote process open method: {}", magic_enum::enum_name(*open_method));
+    }
+    if (memory_method_i != -1) {
+        bblog::info("|   Remote process memory method: {}", magic_enum::enum_name(*memory_method));
+    }
     bblog::info("");
 
     modules::inject_create_remote_thread(pid, *open_method, *memory_method);
@@ -251,7 +337,7 @@ PyObject *py_inject_create_process_hollow(PyObject *, PyObject *args, PyObject *
 
     if (!PyArg_ParseTupleAndKeywords(
             args, kwargs,
-            "ssi", (char **)kwlist,
+            "ss|i", (char **)kwlist,
             &original_image_s,
             &injected_image_s,
             &memory_method_i
@@ -262,16 +348,22 @@ PyObject *py_inject_create_process_hollow(PyObject *, PyObject *args, PyObject *
     auto original_image_ws = str::to_wstring(original_image_s);
     auto injected_image_ws = str::to_wstring(injected_image_s);
 
-    auto memory_method = magic_enum::enum_cast<modules::RemoteProcessMemoryMethod>((uint8_t)memory_method_i);
+    auto memory_method = module_context.process_memory_method;
+    if (memory_method_i != -1) {
+        memory_method = magic_enum::enum_cast<modules::RemoteProcessMemoryMethod>((uint8_t)memory_method_i);
+    }
+
     if (!memory_method.has_value()) {
         bblog::error("invalid RemoteProcessMemoryMethod");
         Py_RETURN_NONE;
     }
 
     bblog::info("| Script options:");
-    bblog::info("|   Remote process memory method: {}", magic_enum::enum_name(*memory_method));
     bblog::info("|   Original image: {}", original_image_s);
     bblog::info("|   Injected image: {}", injected_image_s);
+    if (memory_method_i != -1) {
+        bblog::info("|   Remote process memory method: {}", magic_enum::enum_name(*memory_method));
+    }
     bblog::info("");
 
     modules::inject_create_process_hollow(original_image_ws, injected_image_ws, *memory_method);
@@ -289,7 +381,7 @@ PyObject *py_inject_create_process_doppel(PyObject *, PyObject *args, PyObject *
 
     if (!PyArg_ParseTupleAndKeywords(
             args, kwargs,
-            "ssi", (char **)kwlist,
+            "ss|i", (char **)kwlist,
             &original_image_s,
             &injected_image_s,
             &memory_method_i
@@ -300,16 +392,22 @@ PyObject *py_inject_create_process_doppel(PyObject *, PyObject *args, PyObject *
     auto original_image_ws = str::to_wstring(original_image_s);
     auto injected_image_ws = str::to_wstring(injected_image_s);
 
-    auto memory_method = magic_enum::enum_cast<modules::RemoteProcessMemoryMethod>((uint8_t)memory_method_i);
+    auto memory_method = module_context.process_memory_method;
+    if (memory_method_i != -1) {
+        memory_method = magic_enum::enum_cast<modules::RemoteProcessMemoryMethod>((uint8_t)memory_method_i);
+    }
+
     if (!memory_method.has_value()) {
         bblog::error("invalid RemoteProcessMemoryMethod");
         Py_RETURN_NONE;
     }
 
     bblog::info("| Script options:");
-    bblog::info("|   Remote process memory method: {}", magic_enum::enum_name(*memory_method));
     bblog::info("|   Original image: {}", original_image_s);
     bblog::info("|   Injected image: {}", injected_image_s);
+    if (memory_method_i != -1) {
+        bblog::info("|   Remote process memory method: {}", magic_enum::enum_name(*memory_method));
+    }
     bblog::info("");
 
     modules::inject_create_process_doppel(original_image_ws, injected_image_ws, *memory_method);
@@ -327,7 +425,7 @@ PyObject *py_inject_com_irundown_docallback(PyObject *, PyObject *args, PyObject
 
     if (!PyArg_ParseTupleAndKeywords(
             args, kwargs,
-            "sii", (char **)kwlist,
+            "s|ii", (char **)kwlist,
             &process_s,
             &open_method_i,
             &memory_method_i
@@ -342,13 +440,21 @@ PyObject *py_inject_com_irundown_docallback(PyObject *, PyObject *args, PyObject
         Py_RETURN_NONE;
     }
 
-    auto open_method = magic_enum::enum_cast<modules::RemoteProcessOpenMethod>((uint8_t)open_method_i);
+    auto open_method = module_context.process_open_method;
+    if (open_method_i != -1) {
+        open_method = magic_enum::enum_cast<modules::RemoteProcessOpenMethod>((uint8_t)open_method_i);
+    }
+
     if (!open_method.has_value()) {
         bblog::error("invalid RemoteProcessOpenMethod");
         Py_RETURN_NONE;
     }
 
-    auto memory_method = magic_enum::enum_cast<modules::RemoteProcessMemoryMethod>((uint8_t)memory_method_i);
+    auto memory_method = module_context.process_memory_method;
+    if (memory_method_i != -1) {
+        memory_method = magic_enum::enum_cast<modules::RemoteProcessMemoryMethod>((uint8_t)memory_method_i);
+    }
+
     if (!memory_method.has_value()) {
         bblog::error("invalid RemoteProcessMemoryMethod");
         Py_RETURN_NONE;
@@ -356,8 +462,12 @@ PyObject *py_inject_com_irundown_docallback(PyObject *, PyObject *args, PyObject
 
     bblog::info("| Script options:");
     bblog::info("|   Process: {}", process_s);
-    bblog::info("|   Remote process open method: {}", magic_enum::enum_name(*open_method));
-    bblog::info("|   Remote process memory method: {}", magic_enum::enum_name(*memory_method));
+    if (open_method_i != -1) {
+        bblog::info("|   Remote process open method: {}", magic_enum::enum_name(*open_method));
+    }
+    if (memory_method_i != -1) {
+        bblog::info("|   Remote process memory method: {}", magic_enum::enum_name(*memory_method));
+    }
     bblog::info("");
 
     modules::inject_com_irundown_docallback(pid, *open_method, *memory_method);

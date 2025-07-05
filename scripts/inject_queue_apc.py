@@ -5,8 +5,10 @@ print("Script: Inject via queue user APC")
 print()
 
 breaking_bat.init_sysapi(ntdll_load_copy=True)
-breaking_bat.inject_queue_apc(
-    "notepad.exe",
+
+breaking_bat.set_default_options(
     open_method=RemoteProcessOpenMethod.OpenProcess,
     memory_method=RemoteProcessMemoryMethod.AllocateInAddr
 )
+
+breaking_bat.inject_queue_apc("notepad.exe")
