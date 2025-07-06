@@ -16,6 +16,7 @@ extern char *default_shellcode_data;
 extern size_t default_shellcode_size;
 
 enum class RemoteProcessMemoryMethod : uint8_t {
+    Unknown,
     AllocateInAddr,
     CreateSectionMap,
     CreateSectionMapLocalMap,
@@ -28,7 +29,7 @@ const char *decode(RemoteProcessMemoryMethod method);
 
 struct RemoteProcessMemoryContext {
 
-    RemoteProcessMemoryMethod method = (RemoteProcessMemoryMethod)-1;
+    RemoteProcessMemoryMethod method = RemoteProcessMemoryMethod::Unknown;
 
     HANDLE ProcessHandle = NULL;
     PVOID RemoteBaseAddress = nullptr;
@@ -42,6 +43,7 @@ struct RemoteProcessMemoryContext {
 };
 
 enum class RemoteProcessOpenMethod : uint8_t {
+    Unknown,
     OpenProcess,
     OpenProcessByHwnd,
     MaxValue = OpenProcessByHwnd
@@ -138,7 +140,6 @@ bool system_init_live_dump(kernel_dump::kernel_dump_context_t& ctx);
 //
 
 bool inject_hijack_remote_thread(uint32_t pid, RemoteProcessOpenMethod open_method, RemoteProcessMemoryMethod memory_method);
-bool inject_create_remote_thread(uint32_t pid, RemoteProcessOpenMethod open_method, RemoteProcessMemoryMethod memory_method);
 bool inject_create_process_hollow(const std::wstring& original_image, const std::wstring& injected_image, RemoteProcessMemoryMethod method);
 bool inject_create_process_doppel(const std::wstring& original_image, const std::wstring& injected_image, RemoteProcessMemoryMethod method);
 bool inject_queue_apc(uint32_t pid, uint32_t tid, RemoteProcessOpenMethod open_method, RemoteProcessMemoryMethod memory_method);
