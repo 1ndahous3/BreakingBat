@@ -217,70 +217,6 @@ PyObject *py_inject_queue_apc_early_bird(PyObject *, PyObject *args, PyObject *k
     Py_RETURN_NONE;
 }
 
-PyObject *py_inject_hijack_remote_thread(PyObject *, PyObject *args, PyObject *kwargs) {
-
-    static const char *kwlist[] = { "process", "open_method", "memory_method", NULL };
-
-    const char *process_s = NULL;
-
-    int open_method_i = -1;
-    int memory_method_i = -1;
-
-    if (!PyArg_ParseTupleAndKeywords(
-            args, kwargs,
-            "s|ii", (char **)kwlist,
-            &process_s,
-            &open_method_i,
-            &memory_method_i
-        )) {
-        return NULL;
-    }
-
-    auto process_ws = str::to_wstring(process_s);
-
-    uint32_t pid = get_pid(process_ws);
-    if (pid == 0) {
-        Py_RETURN_NONE;
-    }
-
-    auto open_method = script_context->current_process_open_method;
-    if (open_method_i != -1) {
-        auto method = magic_enum::enum_cast<modules::RemoteProcessOpenMethod>((uint8_t)open_method_i);
-        open_method = method.has_value() ? *method : modules::RemoteProcessOpenMethod::Unknown;
-    }
-
-    if (open_method == modules::RemoteProcessOpenMethod::Unknown) {
-        bblog::error("invalid RemoteProcessOpenMethod");
-        PyErr_SetString(PyExc_ValueError, "Invalid RemoteProcessOpenMethod");
-        return NULL;
-    }
-
-    auto memory_method = script_context->current_process_memory_method;
-    if (memory_method_i != -1) {
-        auto method = magic_enum::enum_cast<modules::RemoteProcessMemoryMethod>((uint8_t)memory_method_i);
-        memory_method = method.has_value() ? *method : modules::RemoteProcessMemoryMethod::Unknown;
-    }
-
-    if (memory_method == modules::RemoteProcessMemoryMethod::Unknown) {
-        bblog::error("invalid RemoteProcessMemoryMethod");
-        PyErr_SetString(PyExc_ValueError, "Invalid RemoteProcessMemoryMethod");
-        return NULL;
-    }
-
-    bblog::info("| Script options:");
-    bblog::info("|   Process: {}", process_s);
-    if (open_method_i != -1) {
-        bblog::info("|   Remote process open method: {}", magic_enum::enum_name(open_method));
-    }
-    if (memory_method_i != -1) {
-        bblog::info("|   Remote process memory method: {}", magic_enum::enum_name(memory_method));
-    }
-    bblog::info("");
-
-    modules::inject_hijack_remote_thread(pid, open_method, memory_method);
-    Py_RETURN_NONE;
-}
-
 PyObject *py_inject_create_process_hollow(PyObject *, PyObject *args, PyObject *kwargs) {
 
     static const char *kwlist[] = { "original_image", "injected_image", "memory_method", NULL };
@@ -633,6 +569,65 @@ PyObject *py_process_write_memory(PyObject *, PyObject *args, PyObject *kwargs) 
     Py_RETURN_NONE;
 }
 
+PyObject *py_process_thread_set_execute(PyObject *, PyObject *args, PyObject *kwargs) {
+
+    static const char *kwlist[] = { "new_thread", "is_x64", "ep", "handle", NULL };
+
+    int new_thread = 0;
+    int is_x64 = 0;
+
+    uint64_t ep_u = 0;
+    uint64_t handle_u = 0;
+
+    if (!PyArg_ParseTupleAndKeywords(
+            args, kwargs,
+            "ppK|K", (char **)kwlist,
+            &new_thread,
+            &is_x64,
+            &ep_u,
+            &handle_u
+        )) {
+        return NULL;
+    }
+
+    auto handle = script_context->current_thread;
+    if (handle_u) {
+        handle = (HANDLE)handle_u;
+    }
+
+    if (handle == 0) {
+        bblog::error("invalid HANDLE");
+        PyErr_SetString(PyExc_ValueError, "Invalid HANDLE");
+        return NULL;
+    }
+
+    bool res;
+
+    if (new_thread) {
+        if (is_x64) {
+            res = modules::new_thread_set_execute_x64(handle, (PVOID)ep_u);
+        }
+        else {
+            res = modules::new_thread_set_execute_x86(handle, (PVOID)ep_u);
+        }
+    }
+    else {
+        if (is_x64) {
+            res = modules::thread_set_execute_x64(handle, (PVOID)ep_u);
+        }
+        else {
+            res = modules::thread_set_execute_x86(handle, (PVOID)ep_u);
+        }
+    }
+
+    if (!res) {
+        PyErr_SetString(PyExc_SystemError, "Unable to set thread execute");
+        return NULL;
+    }
+
+    Py_RETURN_NONE;
+}
+
 PyObject *py_process_thread_create(PyObject *, PyObject *args, PyObject *kwargs) {
 
     static const char *kwlist[] = { "ep", "handle", NULL };
@@ -664,12 +659,176 @@ PyObject *py_process_thread_create(PyObject *, PyObject *args, PyObject *kwargs)
     auto ctx = ctx_ptr.get();
     script_context->module_memory_ctxs.emplace((uintptr_t)ctx, std::move(ctx_ptr));
 
-    if (!sysapi::ThreadCreate(handle, (PVOID)ep_u)) {
+    sysapi::unique_handle ThreadHandle = sysapi::ThreadCreate(handle, (PVOID)ep_u);
+    if (ThreadHandle == NULL) {
         PyErr_SetString(PyExc_SystemError, "Unable to create thread");
         return NULL;
     }
 
+    script_context->current_thread = ThreadHandle.get();
+    script_context->module_resources.emplace(ThreadHandle.get(), std::move(ThreadHandle));
+
+    return PyLong_FromVoidPtr(script_context->current_process);
+}
+
+PyObject *py_process_thread_open(PyObject *, PyObject *args, PyObject *kwargs) {
+
+    static const char *kwlist[] = { "handle", "tid", NULL };
+
+    uint64_t handle_u = 0;
+
+    int tid_i = -1;
+
+    if (!PyArg_ParseTupleAndKeywords(
+            args, kwargs,
+            "|Ki", (char **)kwlist,
+            &handle_u,
+            &tid_i
+        )) {
+        return NULL;
+    }
+
+    auto handle = script_context->current_process;
+    if (handle_u) {
+        handle = (HANDLE)handle_u;
+    }
+
+    if (handle == 0) {
+        bblog::error("invalid HANDLE");
+        PyErr_SetString(PyExc_ValueError, "Invalid HANDLE");
+        return NULL;
+    }
+
+    sysapi::unique_handle ThreadHandle;
+
+    if (tid_i == -1) {
+        ThreadHandle = sysapi::ThreadOpenNext(handle);
+    }
+    else {
+        // TODO: capture PID
+        // ThreadHandle = sysapi::ThreadOpen();
+    }
+
+    if (ThreadHandle == NULL) {
+        PyErr_SetString(PyExc_SystemError, "Unable to open thread");
+        return NULL;
+    }
+
+    script_context->current_thread = ThreadHandle.get();
+    script_context->module_resources.emplace(ThreadHandle.get(), std::move(ThreadHandle));
+
+    return PyLong_FromVoidPtr(script_context->current_process);
+}
+
+PyObject *py_process_thread_suspend(PyObject *, PyObject *args, PyObject *kwargs) {
+
+    static const char *kwlist[] = { "handle", NULL };
+
+    uint64_t handle_u = 0;
+
+    if (!PyArg_ParseTupleAndKeywords(
+            args, kwargs,
+            "|K", (char **)kwlist,
+            &handle_u
+        )) {
+        return NULL;
+    }
+
+    auto handle = script_context->current_thread;
+    if (handle_u) {
+        handle = (HANDLE)handle_u;
+    }
+
+    if (handle == 0) {
+        bblog::error("invalid HANDLE");
+        PyErr_SetString(PyExc_ValueError, "Invalid HANDLE");
+        return NULL;
+    }
+
+    auto ctx_ptr = std::make_unique<modules::RemoteProcessMemoryContext>();
+    auto ctx = ctx_ptr.get();
+    script_context->module_memory_ctxs.emplace((uintptr_t)ctx, std::move(ctx_ptr));
+
+    if (!sysapi::ThreadSuspend(handle)) {
+        PyErr_SetString(PyExc_SystemError, "Unable to suspend thread");
+        return NULL;
+    }
+
     Py_RETURN_NONE;
+}
+
+PyObject *py_process_thread_resume(PyObject *, PyObject *args, PyObject *kwargs) {
+
+    static const char *kwlist[] = { "handle", NULL };
+
+    uint64_t handle_u = 0;
+
+    if (!PyArg_ParseTupleAndKeywords(
+            args, kwargs,
+            "|K", (char **)kwlist,
+            &handle_u
+        )) {
+        return NULL;
+    }
+
+    auto handle = script_context->current_thread;
+    if (handle_u) {
+        handle = (HANDLE)handle_u;
+    }
+
+    if (handle == 0) {
+        bblog::error("invalid HANDLE");
+        PyErr_SetString(PyExc_ValueError, "Invalid HANDLE");
+        return NULL;
+    }
+
+    auto ctx_ptr = std::make_unique<modules::RemoteProcessMemoryContext>();
+    auto ctx = ctx_ptr.get();
+    script_context->module_memory_ctxs.emplace((uintptr_t)ctx, std::move(ctx_ptr));
+
+    if (!sysapi::ThreadResume(handle)) {
+        PyErr_SetString(PyExc_SystemError, "Unable to resume thread");
+        return NULL;
+    }
+
+    Py_RETURN_NONE;
+}
+
+PyObject *py_process_is_x64(PyObject *, PyObject *args, PyObject *kwargs) {
+
+    static const char *kwlist[] = { "handle", NULL };
+
+    uint64_t ep_u = 0;
+    uint64_t handle_u = 0;
+
+    if (!PyArg_ParseTupleAndKeywords(
+            args, kwargs,
+            "|K", (char **)kwlist,
+            &ep_u,
+            &handle_u
+        )) {
+        return NULL;
+    }
+
+    auto handle = script_context->current_process;
+    if (handle_u) {
+        handle = (HANDLE)handle_u;
+    }
+
+    if (handle == 0) {
+        bblog::error("invalid HANDLE");
+        PyErr_SetString(PyExc_ValueError, "Invalid HANDLE");
+        return NULL;
+    }
+
+    bool is_64;
+    bool res = sysapi::ProcessGetWow64Info(handle, is_64);
+    if (!res) {
+        PyErr_SetString(PyExc_SystemError, "Unable to get Wow64 info");
+        return NULL;
+    }
+
+    return is_64 ? Py_True : Py_False;
 }
 
 PyObject *py_memory_get_remote_address(PyObject *, PyObject *args, PyObject *kwargs) {

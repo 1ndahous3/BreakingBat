@@ -133,13 +133,28 @@ bool thread_set_execute(HANDLE ThreadHandle, PVOID ExecAddress) {
     return true;
 }
 
+inline bool new_thread_set_execute_x64(HANDLE ThreadHandle, PVOID ExecAddress) {
+    return thread_set_execute<true, true>(ThreadHandle, ExecAddress);
+}
+
+inline bool new_thread_set_execute_x86(HANDLE ThreadHandle, PVOID ExecAddress) {
+    return thread_set_execute<true, false>(ThreadHandle, ExecAddress);
+}
+
+inline bool thread_set_execute_x64(HANDLE ThreadHandle, PVOID ExecAddress) {
+    return thread_set_execute<false, true>(ThreadHandle, ExecAddress);
+}
+
+inline bool thread_set_execute_x86(HANDLE ThreadHandle, PVOID ExecAddress) {
+    return thread_set_execute<false, false>(ThreadHandle, ExecAddress);
+}
+
 //
 
 bool system_init_live_dump(kernel_dump::kernel_dump_context_t& ctx);
 
 //
 
-bool inject_hijack_remote_thread(uint32_t pid, RemoteProcessOpenMethod open_method, RemoteProcessMemoryMethod memory_method);
 bool inject_create_process_hollow(const std::wstring& original_image, const std::wstring& injected_image, RemoteProcessMemoryMethod method);
 bool inject_create_process_doppel(const std::wstring& original_image, const std::wstring& injected_image, RemoteProcessMemoryMethod method);
 bool inject_queue_apc(uint32_t pid, uint32_t tid, RemoteProcessOpenMethod open_method, RemoteProcessMemoryMethod memory_method);

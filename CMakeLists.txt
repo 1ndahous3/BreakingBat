@@ -57,7 +57,6 @@ target_sources(breaking_bat PRIVATE
     src/python_core.cpp
     src/python_modules.cpp
     src/modules/modules.cpp
-    src/modules/inject_hijack_remote_thread.cpp
     src/modules/inject_create_process_hollow.cpp
     src/modules/inject_create_process_doppel.cpp
     src/modules/inject_queue_apc.cpp

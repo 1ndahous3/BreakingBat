@@ -21,7 +21,6 @@ PyObject *py_set_default_options(PyObject *m, PyObject *args, PyObject *kwargs);
 
 PyObject *py_inject_queue_apc(PyObject *m, PyObject *args, PyObject *kwargs);
 PyObject *py_inject_queue_apc_early_bird(PyObject *m, PyObject *args, PyObject *kwargs);
-PyObject *py_inject_hijack_remote_thread(PyObject *m, PyObject *args, PyObject *kwargs);
 PyObject *py_inject_create_process_hollow(PyObject *m, PyObject *args, PyObject *kwargs);
 PyObject *py_inject_create_process_doppel(PyObject *m, PyObject *args, PyObject *kwargs);
 PyObject *py_inject_com_irundown_docallback(PyObject *m, PyObject *args, PyObject *kwargs);
@@ -32,7 +31,12 @@ PyObject *py_process_open(PyObject *m, PyObject *args, PyObject *kwargs);
 PyObject *py_process_init_memory(PyObject *m, PyObject *args, PyObject *kwargs);
 PyObject *py_process_create_memory(PyObject *m, PyObject *args, PyObject *kwargs);
 PyObject *py_process_write_memory(PyObject *m, PyObject *args, PyObject *kwargs);
+PyObject *py_process_thread_set_execute(PyObject *m, PyObject *args, PyObject *kwargs);
 PyObject *py_process_thread_create(PyObject *m, PyObject *args, PyObject *kwargs);
+PyObject *py_process_thread_open(PyObject *m, PyObject *args, PyObject *kwargs);
+PyObject *py_process_thread_suspend(PyObject *m, PyObject *args, PyObject *kwargs);
+PyObject *py_process_thread_resume(PyObject *m, PyObject *args, PyObject *kwargs);
+PyObject *py_process_is_x64(PyObject *, PyObject *args, PyObject *kwargs);
 
 PyObject *py_memory_get_remote_address(PyObject *m, PyObject *args, PyObject *kwargs);
 PyObject *py_memory_set_size(PyObject *m, PyObject *args, PyObject *kwargs);
