@@ -112,48 +112,6 @@ PyObject *py_set_default_options(PyObject *, PyObject *args, PyObject *kwargs) {
     Py_RETURN_NONE;
 }
 
-PyObject *py_inject_queue_apc_early_bird(PyObject *, PyObject *args, PyObject *kwargs) {
-
-    static const char *kwlist[] = { "original_image", "memory_method", NULL };
-
-    const char *original_image_s = NULL;
-
-    int memory_method_i = -1;
-
-    if (!PyArg_ParseTupleAndKeywords(
-            args, kwargs,
-            "s|i", (char **)kwlist,
-            &original_image_s,
-            &memory_method_i
-        )) {
-        return NULL;
-    }
-
-    auto original_image_ws = str::to_wstring(original_image_s);
-
-    auto memory_method = script_context->current_process_memory_method;
-    if (memory_method_i != -1) {
-        auto method = magic_enum::enum_cast<modules::RemoteProcessMemoryMethod>((uint8_t)memory_method_i);
-        memory_method = method.has_value() ? *method : modules::RemoteProcessMemoryMethod::Unknown;
-    }
-
-    if (memory_method == modules::RemoteProcessMemoryMethod::Unknown) {
-        bblog::error("invalid RemoteProcessMemoryMethod");
-        PyErr_SetString(PyExc_ValueError, "Invalid RemoteProcessMemoryMethod");
-        return NULL;
-    }
-
-    bblog::info("| Script options:");
-    bblog::info("|   Original image: {}", original_image_s);
-    if (memory_method_i != -1) {
-        bblog::info("|   Remote process memory method: {}", magic_enum::enum_name(memory_method));
-    }
-    bblog::info("");
-
-    modules::inject_queue_apc_early_bird(original_image_ws, memory_method);
-    Py_RETURN_NONE;
-}
-
 PyObject *py_inject_create_process_hollow(PyObject *, PyObject *args, PyObject *kwargs) {
 
     static const char *kwlist[] = { "original_image", "injected_image", "memory_method", NULL };
@@ -385,6 +343,44 @@ PyObject *py_process_open(PyObject *, PyObject *args, PyObject *kwargs) {
     script_context->module_resources.emplace(script_context->current_process, std::move(ProcessHandle));
 
     return PyLong_FromVoidPtr(script_context->current_process);
+}
+
+PyObject *py_process_create_user(PyObject *, PyObject *args, PyObject *kwargs) {
+
+    static const char *kwlist[] = { "original_image", "suspended", NULL };
+
+    const char *original_image_s = NULL;
+
+    int suspended = 0;
+
+    if (!PyArg_ParseTupleAndKeywords(
+            args, kwargs,
+            "sp", (char **)kwlist,
+            &original_image_s,
+            &suspended
+        )) {
+        return NULL;
+    }
+
+    auto original_image_ws = str::to_wstring(original_image_s);
+
+    auto process = sysapi::ProcessCreateUser(original_image_ws, suspended);
+    if (process.hProcess == NULL) {
+        PyErr_SetString(PyExc_SystemError, "Unable to create process");
+        return NULL;
+    }
+
+    script_context->current_process = process.hProcess.get();
+    script_context->module_resources.emplace(script_context->current_process, std::move(process.hProcess));
+
+    script_context->current_thread = process.hThread.get();
+    script_context->module_resources.emplace(script_context->current_thread, std::move(process.hThread));
+
+    return PyTuple_Pack(
+        2,
+        PyLong_FromVoidPtr(script_context->current_process),
+        PyLong_FromVoidPtr(script_context->current_thread)
+    );
 }
 
 PyObject *py_process_init_memory(PyObject *, PyObject *args, PyObject *kwargs) {

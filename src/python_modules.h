@@ -19,7 +19,6 @@ void py_init_enums(PyObject *m);
 PyObject *py_script_success(PyObject *m, PyObject *args, PyObject *kwargs);
 PyObject *py_set_default_options(PyObject *m, PyObject *args, PyObject *kwargs);
 
-PyObject *py_inject_queue_apc_early_bird(PyObject *m, PyObject *args, PyObject *kwargs);
 PyObject *py_inject_create_process_hollow(PyObject *m, PyObject *args, PyObject *kwargs);
 PyObject *py_inject_create_process_doppel(PyObject *m, PyObject *args, PyObject *kwargs);
 PyObject *py_inject_com_irundown_docallback(PyObject *m, PyObject *args, PyObject *kwargs);
@@ -27,6 +26,7 @@ PyObject *py_execute_rop_gadget_local(PyObject *m, PyObject *args, PyObject *kwa
 
 PyObject *py_process_find(PyObject *m, PyObject *args, PyObject *kwargs);
 PyObject *py_process_open(PyObject *m, PyObject *args, PyObject *kwargs);
+PyObject *py_process_create_user(PyObject *m, PyObject *args, PyObject *kwargs);
 PyObject *py_process_init_memory(PyObject *m, PyObject *args, PyObject *kwargs);
 PyObject *py_process_create_memory(PyObject *m, PyObject *args, PyObject *kwargs);
 PyObject *py_process_write_memory(PyObject *m, PyObject *args, PyObject *kwargs);
