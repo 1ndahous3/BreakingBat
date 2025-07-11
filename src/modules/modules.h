@@ -68,7 +68,7 @@ bool process_write_params(HANDLE ProcessHandle, PRTL_USER_PROCESS_PARAMETERS Par
 
 unique_c_mem<PEB> process_read_peb(HANDLE ProcessHandle);
 
-sysapi::unique_handle process_find_alertable_thread(HANDLE ProcessHandle);
+sysapi::unique_handle process_open_alertable_thread(HANDLE ProcessHandle);
 
 //
 
@@ -157,7 +157,6 @@ bool system_init_live_dump(kernel_dump::kernel_dump_context_t& ctx);
 
 bool inject_create_process_hollow(const std::wstring& original_image, const std::wstring& injected_image, RemoteProcessMemoryMethod method);
 bool inject_create_process_doppel(const std::wstring& original_image, const std::wstring& injected_image, RemoteProcessMemoryMethod method);
-bool inject_queue_apc(uint32_t pid, uint32_t tid, RemoteProcessOpenMethod open_method, RemoteProcessMemoryMethod memory_method);
 bool inject_queue_apc_early_bird(const std::wstring& original_image, RemoteProcessMemoryMethod memory_method);
 bool inject_com_irundown_docallback(uint32_t pid, RemoteProcessOpenMethod open_method, RemoteProcessMemoryMethod memory_method);
 void execute_rop_gadget_local();

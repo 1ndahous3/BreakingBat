@@ -112,69 +112,6 @@ PyObject *py_set_default_options(PyObject *, PyObject *args, PyObject *kwargs) {
     Py_RETURN_NONE;
 }
 
-PyObject *py_inject_queue_apc(PyObject *, PyObject *args, PyObject *kwargs) {
-
-    static const char *kwlist[] = { "process", "thread", "open_method", "memory_method", NULL };
-
-    const char *process_s = NULL;
-    int thread = 0;
-
-    int open_method_i = -1;
-    int memory_method_i = -1;
-
-    if (!PyArg_ParseTupleAndKeywords(
-            args, kwargs,
-            "s|iii", (char **)kwlist,
-            &process_s,
-            &thread,
-            &open_method_i,
-            &memory_method_i
-        )) {
-        return NULL;
-    }
-
-    auto process_ws = str::to_wstring(process_s);
-
-    uint32_t pid = get_pid(process_ws);
-    if (pid == 0) {
-        Py_RETURN_NONE;
-    }
-
-    auto open_method = script_context->current_process_open_method;
-    if (open_method_i != -1) {
-        auto method = magic_enum::enum_cast<modules::RemoteProcessOpenMethod>((uint8_t)open_method_i);
-        open_method = method.has_value() ? *method : modules::RemoteProcessOpenMethod::Unknown;
-    }
-
-    if (open_method == modules::RemoteProcessOpenMethod::Unknown) {
-        bblog::error("invalid RemoteProcessOpenMethod");
-        PyErr_SetString(PyExc_ValueError, "Invalid RemoteProcessOpenMethod");
-        return NULL;
-    }
-
-    auto memory_method = script_context->current_process_memory_method;
-    if (memory_method_i != -1) {
-        auto method = magic_enum::enum_cast<modules::RemoteProcessMemoryMethod>((uint8_t)memory_method_i);
-        memory_method = method.has_value() ? *method : modules::RemoteProcessMemoryMethod::Unknown;
-    }
-
-    if (memory_method == modules::RemoteProcessMemoryMethod::Unknown) {
-        bblog::error("invalid RemoteProcessMemoryMethod");
-        PyErr_SetString(PyExc_ValueError, "Invalid RemoteProcessMemoryMethod");
-        return NULL;
-    }
-
-    bblog::info("| Script options:");
-    bblog::info("|   Process: {}", process_s);
-    bblog::info("|   Thread: {}", thread ? std::to_string(thread) : "alertable");
-    bblog::info("|   Remote process open method: {}", magic_enum::enum_name(open_method));
-    bblog::info("|   Remote process memory method: {}", magic_enum::enum_name(memory_method));
-    bblog::info("");
-
-    modules::inject_queue_apc(pid, thread, open_method, memory_method);
-    Py_RETURN_NONE;
-}
-
 PyObject *py_inject_queue_apc_early_bird(PyObject *, PyObject *args, PyObject *kwargs) {
 
     static const char *kwlist[] = { "original_image", "memory_method", NULL };
@@ -445,7 +382,7 @@ PyObject *py_process_open(PyObject *, PyObject *args, PyObject *kwargs) {
     }
 
     script_context->current_process = ProcessHandle.get();
-    script_context->module_resources.emplace(ProcessHandle.get(), std::move(ProcessHandle));
+    script_context->module_resources.emplace(script_context->current_process, std::move(ProcessHandle));
 
     return PyLong_FromVoidPtr(script_context->current_process);
 }
@@ -655,10 +592,6 @@ PyObject *py_process_thread_create(PyObject *, PyObject *args, PyObject *kwargs)
         return NULL;
     }
 
-    auto ctx_ptr = std::make_unique<modules::RemoteProcessMemoryContext>();
-    auto ctx = ctx_ptr.get();
-    script_context->module_memory_ctxs.emplace((uintptr_t)ctx, std::move(ctx_ptr));
-
     sysapi::unique_handle ThreadHandle = sysapi::ThreadCreate(handle, (PVOID)ep_u);
     if (ThreadHandle == NULL) {
         PyErr_SetString(PyExc_SystemError, "Unable to create thread");
@@ -666,9 +599,9 @@ PyObject *py_process_thread_create(PyObject *, PyObject *args, PyObject *kwargs)
     }
 
     script_context->current_thread = ThreadHandle.get();
-    script_context->module_resources.emplace(ThreadHandle.get(), std::move(ThreadHandle));
+    script_context->module_resources.emplace(script_context->current_thread, std::move(ThreadHandle));
 
-    return PyLong_FromVoidPtr(script_context->current_process);
+    return PyLong_FromVoidPtr(script_context->current_thread);
 }
 
 PyObject *py_process_thread_open(PyObject *, PyObject *args, PyObject *kwargs) {
@@ -715,9 +648,46 @@ PyObject *py_process_thread_open(PyObject *, PyObject *args, PyObject *kwargs) {
     }
 
     script_context->current_thread = ThreadHandle.get();
-    script_context->module_resources.emplace(ThreadHandle.get(), std::move(ThreadHandle));
+    script_context->module_resources.emplace(script_context->current_thread, std::move(ThreadHandle));
 
-    return PyLong_FromVoidPtr(script_context->current_process);
+    return PyLong_FromVoidPtr(script_context->current_thread);
+}
+
+PyObject *py_process_thread_open_alertable(PyObject *, PyObject *args, PyObject *kwargs) {
+
+    static const char *kwlist[] = { "handle", NULL };
+
+    uint64_t handle_u = 0;
+
+    if (!PyArg_ParseTupleAndKeywords(
+            args, kwargs,
+            "|K", (char **)kwlist,
+            &handle_u
+        )) {
+        return NULL;
+    }
+
+    auto handle = script_context->current_process;
+    if (handle_u) {
+        handle = (HANDLE)handle_u;
+    }
+
+    if (handle == 0) {
+        bblog::error("invalid HANDLE");
+        PyErr_SetString(PyExc_ValueError, "Invalid HANDLE");
+        return NULL;
+    }
+
+    auto ThreadHandle = modules::process_open_alertable_thread(handle);
+    if (ThreadHandle == NULL) {
+        PyErr_SetString(PyExc_SystemError, "Unable to open alertable thread");
+        return NULL;
+    }
+
+    script_context->current_thread = ThreadHandle.get();
+    script_context->module_resources.emplace(script_context->current_thread, std::move(ThreadHandle));
+
+    return PyLong_FromVoidPtr(script_context->current_thread);
 }
 
 PyObject *py_process_thread_suspend(PyObject *, PyObject *args, PyObject *kwargs) {
@@ -744,10 +714,6 @@ PyObject *py_process_thread_suspend(PyObject *, PyObject *args, PyObject *kwargs
         PyErr_SetString(PyExc_ValueError, "Invalid HANDLE");
         return NULL;
     }
-
-    auto ctx_ptr = std::make_unique<modules::RemoteProcessMemoryContext>();
-    auto ctx = ctx_ptr.get();
-    script_context->module_memory_ctxs.emplace((uintptr_t)ctx, std::move(ctx_ptr));
 
     if (!sysapi::ThreadSuspend(handle)) {
         PyErr_SetString(PyExc_SystemError, "Unable to suspend thread");
@@ -782,12 +748,43 @@ PyObject *py_process_thread_resume(PyObject *, PyObject *args, PyObject *kwargs)
         return NULL;
     }
 
-    auto ctx_ptr = std::make_unique<modules::RemoteProcessMemoryContext>();
-    auto ctx = ctx_ptr.get();
-    script_context->module_memory_ctxs.emplace((uintptr_t)ctx, std::move(ctx_ptr));
-
     if (!sysapi::ThreadResume(handle)) {
         PyErr_SetString(PyExc_SystemError, "Unable to resume thread");
+        return NULL;
+    }
+
+    Py_RETURN_NONE;
+}
+
+PyObject *py_process_thread_queue_user_apc(PyObject *, PyObject *args, PyObject *kwargs) {
+
+    static const char *kwlist[] = { "ep", "handle", NULL };
+
+    uint64_t ep_u = 0;
+    uint64_t handle_u = 0;
+
+    if (!PyArg_ParseTupleAndKeywords(
+            args, kwargs,
+            "K|K", (char **)kwlist,
+            &ep_u,
+            &handle_u
+        )) {
+        return NULL;
+    }
+
+    auto handle = script_context->current_thread;
+    if (handle_u) {
+        handle = (HANDLE)handle_u;
+    }
+
+    if (handle == 0) {
+        bblog::error("invalid HANDLE");
+        PyErr_SetString(PyExc_ValueError, "Invalid HANDLE");
+        return NULL;
+    }
+
+    if (!sysapi::ThreadQueueUserApc(handle, (PPS_APC_ROUTINE)ep_u)) {
+        PyErr_SetString(PyExc_SystemError, "Unable to queue user APC");
         return NULL;
     }
 

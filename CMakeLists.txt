@@ -59,7 +59,6 @@ target_sources(breaking_bat PRIVATE
     src/modules/modules.cpp
     src/modules/inject_create_process_hollow.cpp
     src/modules/inject_create_process_doppel.cpp
-    src/modules/inject_queue_apc.cpp
     src/modules/inject_queue_apc_early_bird.cpp
     src/modules/inject_com_irundown_docallback.cpp
     src/modules/execute_rop_gadget_local.cpp

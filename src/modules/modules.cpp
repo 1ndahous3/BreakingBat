@@ -470,7 +470,7 @@ unique_c_mem<PEB> process_read_peb(HANDLE ProcessHandle) {
     return process_peb;
 }
 
-sysapi::unique_handle process_find_alertable_thread(HANDLE ProcessHandle) {
+sysapi::unique_handle process_open_alertable_thread(HANDLE ProcessHandle) {
 
     sysapi::unique_handle ThreadHandle = sysapi::ThreadOpenNext(ProcessHandle);
     if (ThreadHandle == NULL) {
