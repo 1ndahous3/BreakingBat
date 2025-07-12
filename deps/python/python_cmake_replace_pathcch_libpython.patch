@@ -1,0 +1,20 @@
+diff --git a/cmake/libpython/CMakeLists.txt b/cmake/libpython/CMakeLists.txt
+index c344b67..a6343e0 100644
+--- a/cmake/libpython/CMakeLists.txt
++++ b/cmake/libpython/CMakeLists.txt
+@@ -228,6 +228,7 @@ set(PYTHON_COMMON_SOURCES
+     ${DYNLOAD_SOURCES}
+     ${SRC_DIR}/Python/dynamic_annotations.c
+     ${SRC_DIR}/Python/fileutils.c
++    ${SRC_DIR}/Python/api-ms-win-core-path.c
+     ${SRC_DIR}/Python/pystrtod.c
+     ${SRC_DIR}/Python/pytime.c
+     ${SRC_DIR}/Python/asdl.c
+@@ -482,7 +483,6 @@ if(WIN32)
+       ws2_32 # Required by signalmodule
+       $<$<VERSION_GREATER_EQUAL:${PY_VERSION},3.5>:version> # Required by sysmodule
+       $<$<VERSION_GREATER_EQUAL:${PY_VERSION},3.6>:shlwapi> # Required by PC/getpathp
+-      $<$<VERSION_GREATER_EQUAL:${PY_VERSION},3.9>:pathcch>
+       $<$<VERSION_GREATER_EQUAL:${PY_VERSION},3.11>:bcrypt> # Required by bootstrap_hash
+      )
+ endif()

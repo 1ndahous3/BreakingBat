@@ -1,0 +1,12 @@
+diff --git a/cmake/extensions/CMakeLists.txt b/cmake/extensions/CMakeLists.txt
+index 0aa7b72..e90d08a 100644
+--- a/cmake/extensions/CMakeLists.txt
++++ b/cmake/extensions/CMakeLists.txt
+@@ -519,7 +519,6 @@ add_python_extension(_overlapped
+         ${SRC_DIR}/Modules/overlapped.c
+     LIBRARIES
+         ws2_32
+-        $<$<VERSION_GREATER_EQUAL:${PY_VERSION},3.9>:pathcch>
+ )
+ add_python_extension(_winapi REQUIRES WIN32 BUILTIN SOURCES ${SRC_DIR}/Modules/_winapi.c)
+ 

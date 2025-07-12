@@ -63,6 +63,7 @@ target_sources(breaking_bat PRIVATE
     src/modules/execute_rop_gadget_local.cpp
     ${RAW_PDB_SOURCES}
     ${IDL_SOURCES}
+    ${CMAKE_CURRENT_SOURCE_DIR}/deps/python/api-ms-win-core-path.c
 )
 
 target_link_options(breaking_bat PRIVATE /DEBUG:FULL /OPT:REF /OPT:ICF)
